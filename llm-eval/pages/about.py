@@ -1,0 +1,7 @@
+import streamlit as st
+
+from common_ui import page_setup
+
+page_setup("About", "ℹ️")
+
+st.info("To add more content")
