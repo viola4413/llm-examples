@@ -15,11 +15,17 @@ AVAILABLE_MODELS = [
 ]
 
 
-def page_setup(title, icon, wide_mode=False, collapse_sidebar=False, public=True):
+def page_setup(title, icon, wide_mode=False, collapse_sidebar=False, visibility="public"):
     if "already_ran" not in st.session_state:
         st.set_option("client.showSidebarNavigation", False)
         st.session_state.already_ran = True
         st.rerun()
+
+    # Handle access control
+    if visibility in ("user", "admin") and not st.session_state.get("user_name"):
+        st.switch_page("app.py")
+    if visibility == "admin" and not st.session_state.get("admin_mode"):
+        st.switch_page("app.py")
 
     st.set_page_config(
         page_title=title,
@@ -63,7 +69,7 @@ def page_setup(title, icon, wide_mode=False, collapse_sidebar=False, public=True
             if st.button("Logout", use_container_width=True):
                 st.session_state.user_name = None
                 st.session_state.admin_mode = None
-                if not public:
+                if visibility != "public":
                     st.switch_page("app.py")
                 else:
                     st.rerun()
