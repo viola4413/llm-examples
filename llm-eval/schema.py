@@ -42,17 +42,42 @@ class Conversation:
         else:
             st.chat_message(message.role).write(message.content)
 
+
+class ConversationRecord:
+    conversations: List[Conversation] = []
+    user: str = ""
+    title: str = ""
+
+    def __init__(self):
+        self.conversations = []
+        self.user = ""
+        self.title = ""
+
     def to_json(self):
-        d = {
-            "messages": [dict(m) for m in self.messages],
-            "model_config": dict(self.model_config),
+        cr = {
+            "conversations": [],
+            "user": self.user,
+            "title": self.title,
         }
-        return json.dumps(d)
+        for conv in self.conversations:
+            cr["conversations"].append(
+                {
+                    "messages": [dict(m) for m in conv.messages],
+                    "model_config": dict(conv.model_config),
+                }
+            )
+        return json.dumps(cr)
 
     @classmethod
     def from_json(cls, raw_json: str):
         d = json.loads(raw_json, strict=False)
-        c = Conversation()
-        c.model_config = ModelConfig.parse_obj(d["model_config"])
-        c.messages = [Message.parse_obj(m) for m in d["messages"]]
-        return c
+        cr = ConversationRecord()
+        cr.user = d["user"]
+        cr.title = d["title"]
+        cr.conversations = []
+        for c in d["conversations"]:
+            conversation = Conversation()
+            conversation.model_config = ModelConfig.parse_obj(c["model_config"])
+            conversation.messages = [Message.parse_obj(m) for m in c["messages"]]
+            cr.conversations.append(conversation)
+        return cr

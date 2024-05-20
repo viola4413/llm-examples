@@ -6,7 +6,12 @@ from streamlit.runtime.scriptrunner import add_script_run_ctx
 from streamlit.runtime.scriptrunner.script_run_context import get_script_run_ctx
 
 from llm import generate_stream
-from schema import Conversation, Message, ModelConfig
+from schema import (
+    Conversation,
+    ConversationRecord,
+    Message,
+    ModelConfig,
+)
 
 
 AVAILABLE_MODELS = [
@@ -41,6 +46,8 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
 
     st.logo(LOGO, link="https://www.snowflake.com", icon_image=ICON_LOGO)
     st.title(title)
+
+    load_chat_history()
 
     # Add page navigation
     with st.sidebar:
@@ -156,3 +163,16 @@ def st_thread(target, args) -> threading.Thread:
     thread = threading.Thread(target=target, args=args)
     add_script_run_ctx(thread, get_script_run_ctx())
     return thread
+
+
+def load_chat_history():
+    CURRENT_DIR = pathlib.Path(__file__).parent.resolve()
+    CONVERSATION_HISTORY_FILE = CURRENT_DIR / "data" / "conversation_history.jsonl"
+
+    if "chat_history" not in st.session_state:
+        chat_history = []
+        with open(CONVERSATION_HISTORY_FILE, "r") as f:
+            jl = f.readlines()
+        for c in jl:
+            chat_history.append(ConversationRecord.from_json(c))
+        st.session_state.chat_history = chat_history

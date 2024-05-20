@@ -7,10 +7,18 @@ from common_ui import (
     page_setup,
     st_thread,
 )
-from schema import Conversation, Message
+from schema import (
+    Conversation,
+    ConversationRecord,
+    Message,
+)
+
+title = "Chat"
+if st.session_state.get("conversation_title"):
+    title = f"Chat: {st.session_state.conversation_title}"
 
 page_setup(
-    title="Chat",
+    title=title,
     wide_mode=True,
     collapse_sidebar=False,
 )
@@ -29,6 +37,14 @@ if "conversations" not in st.session_state:
     for conversation in st.session_state["conversations"]:
         conversation.add_message(Message(role="assistant", content=DEFAULT_MESSAGE), render=False)
 conversations: List[Conversation] = st.session_state["conversations"]
+
+# Handle case where we navigated to load an existing conversation:
+if to_load := st.session_state.pop("load_conversation", None):
+    index = [c.title for c in st.session_state.chat_history].index(to_load)
+    cr = st.session_state.chat_history[index]
+    st.session_state["conversations"] = cr.conversations
+    st.session_state["conversation_title"] = cr.title
+    st.rerun()
 
 # Main area
 
@@ -52,7 +68,6 @@ for idx, msg in enumerate(conversations[0].messages):
 
 user_msg = st.empty()
 response = st.empty()
-feedback_controls = st.empty()
 response_controls = st.empty()
 
 user_input = st.chat_input("Enter your message here.") or st.session_state.pop("regenerate", None)
@@ -81,6 +96,7 @@ if user_input:
 
 
 def record_feedback():
+    # TODO: This should also persist the ConversationRecord in session state
     st.toast("Feedback submitted!", icon=":material/rate_review:")
 
 
@@ -96,24 +112,18 @@ def regenerate():
         del conversation.messages[-2:]
 
 
+@st.experimental_dialog("Edit conversation title")
+def edit_title():
+    new_title = st.text_input(
+        "New conversation title:",
+        value=st.session_state.get("conversation_title"),
+    )
+    if st.button("Save"):
+        st.session_state.conversation_title = new_title
+        st.rerun()
+
+
 if len(conversations[0].messages) > 1:
-    feedback_cols = feedback_controls.columns(4)
-
-    BUTTON_LABELS = [
-        "👈&nbsp; wins",
-        "👉&nbsp; wins",
-        "🤝&nbsp; Tie",
-        "👎&nbsp; Both bad",
-    ]
-    for i, label in enumerate(BUTTON_LABELS):
-        with feedback_cols[i]:
-            st.button(
-                label,
-                use_container_width=True,
-                on_click=record_feedback,
-            )
-
-    # TODO: Big loading skeleton always briefly shows on the hosted app
     action_cols = response_controls.columns(3)
 
     action_cols[0].button("🔄&nbsp; Regenerate", use_container_width=True, on_click=regenerate)
@@ -123,7 +133,12 @@ if len(conversations[0].messages) > 1:
         on_click=clear_history,
     )
 
-with st.sidebar:
-    if st.button("Export"):
-        for conversation in conversations:
-            print(conversation.to_json())
+    with st.sidebar:
+        if st.button("✏️&nbsp; Edit title", use_container_width=True):
+            edit_title()
+        if st.button("Export", use_container_width=True):
+            cr = ConversationRecord()
+            cr.user = st.session_state.get("user_name")
+            cr.conversations = conversations
+            cr.title = st.session_state.get("conversation_title")
+            print(cr.to_json())
