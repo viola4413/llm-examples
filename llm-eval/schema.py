@@ -4,10 +4,10 @@ import streamlit as st
 
 
 class ModelConfig(BaseModel):
-    model: str
-    temperature: float
-    top_p: float
-    max_new_tokens: int
+    model: str = "snowflake/snowflake-arctic-instruct"
+    temperature: float = 0.7
+    top_p: float = 1.0
+    max_new_tokens: int = 1024
 
 
 class Message(BaseModel):
@@ -17,9 +17,11 @@ class Message(BaseModel):
 
 class Conversation:
     messages: List[Message] = []
+    model_config: ModelConfig = None
 
     def __init__(self):
         self.reset_messages()
+        self.model_config = ModelConfig()
 
     def add_message(self, message: Message, container=None, render=True):
         self.messages.append(message)

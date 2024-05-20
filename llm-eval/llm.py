@@ -1,5 +1,5 @@
 import replicate
-from schema import Conversation, ModelConfig
+from schema import Conversation
 
 
 def encode_arctic(conversation: Conversation):
@@ -48,8 +48,8 @@ ENCODING_MAPPING = {
 
 def generate_stream(
     conversation: Conversation,
-    model_config: ModelConfig,
 ):
+    model_config = conversation.model_config
     prompt_str = ENCODING_MAPPING[model_config.model](conversation)
 
     model_input = {

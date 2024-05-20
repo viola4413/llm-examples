@@ -85,62 +85,57 @@ def login():
         st.rerun()
 
 
-def configure_model(container, model_id):
-    MODEL_KEY = f"model_{model_id}"
-    if MODEL_KEY in st.session_state:
-        model_label = st.session_state.get(MODEL_KEY)
-    else:
-        model_label = AVAILABLE_MODELS[0]
-
+def configure_model(container, model_config: ModelConfig, key: str):
     with container:
-        with st.popover(f"Configure {model_id}: `{model_label}`", use_container_width=True):
-            model = st.selectbox(
-                label="Select model:", options=AVAILABLE_MODELS, key=f"model_{model_id}"
+        with st.popover(f"Configure `{model_config.model}`", use_container_width=True):
+            MODEL_KEY = f"model_{key}"
+            TEMPERATURE_KEY = f"temperature_{key}"
+            TOP_P_KEY = f"top_p_{key}"
+            MAX_NEW_TOKENS_KEY = f"max_new_tokens_{key}"
+
+            if MODEL_KEY not in st.session_state:
+                st.session_state[MODEL_KEY] = model_config.model
+                st.session_state[TEMPERATURE_KEY] = model_config.temperature
+                st.session_state[TOP_P_KEY] = model_config.top_p
+                st.session_state[MAX_NEW_TOKENS_KEY] = model_config.max_new_tokens
+
+            model_config.model = st.selectbox(
+                label="Select model:",
+                options=AVAILABLE_MODELS,
+                key=MODEL_KEY,
             )
 
-            temperature = st.slider(
+            model_config.temperature = st.slider(
                 min_value=0.0,
                 max_value=1.0,
-                value=0.7,
                 step=0.1,
                 label="Temperature:",
-                key=f"temp_{model_id}",
+                key=TEMPERATURE_KEY,
             )
 
-            top_p = st.slider(
+            model_config.top_p = st.slider(
                 min_value=0.0,
                 max_value=1.0,
-                value=1.0,
                 step=0.1,
                 label="Top P:",
-                key=f"top_p_{model_id}",
+                key=TOP_P_KEY,
             )
 
-            max_new_tokens = st.slider(
+            model_config.max_new_tokens = st.slider(
                 min_value=100,
                 max_value=1500,
-                value=1024,
                 step=100,
                 label="Max new tokens:",
-                key=f"max_tokens_{model_id}",
+                key=MAX_NEW_TOKENS_KEY,
             )
-    return ModelConfig(
-        model=model,
-        temperature=temperature,
-        top_p=top_p,
-        max_new_tokens=max_new_tokens,
-    )
+    return model_config
 
 
 def chat_response(
     conversation: Conversation,
-    model_config: ModelConfig,
     container=None,
 ):
-    stream_iter = generate_stream(
-        conversation,
-        model_config,
-    )
+    stream_iter = generate_stream(conversation)
 
     if container:
         chat = container.chat_message("assistant")

@@ -35,11 +35,9 @@ conversations: List[Conversation] = st.session_state["conversations"]
 
 ""
 
-MODEL_LABELS = ["Model A", "Model B"]
-model_configs = [None for _ in conversations]
-model_cols = st.columns(len(model_configs))
-for idx in range(len(model_configs)):
-    model_configs[idx] = configure_model(model_cols[idx], MODEL_LABELS[idx])
+model_cols = st.columns(len(conversations))
+for idx, conversation in enumerate(conversations):
+    conversation.model_config = configure_model(model_cols[idx], conversation.model_config, key=f"{idx}")
 
 # Render the chat
 for idx, msg in enumerate(conversations[0].messages):
@@ -70,7 +68,6 @@ if user_input:
     for i, conversation in enumerate(conversations):
         args = (
             conversation,
-            model_configs[i],
             msg_cols[i],
         )
         t = st_thread(target=chat_response, args=args)
@@ -104,8 +101,8 @@ if len(conversations[0].messages) > 1:
     feedback_cols = feedback_controls.columns(4)
 
     BUTTON_LABELS = [
-        f"👈&nbsp; {MODEL_LABELS[0]} wins",
-        f"👉&nbsp; {MODEL_LABELS[1]} wins",
+        "👈&nbsp; wins",
+        "👉&nbsp; wins",
         "🤝&nbsp; Tie",
         "👎&nbsp; Both bad",
     ]
