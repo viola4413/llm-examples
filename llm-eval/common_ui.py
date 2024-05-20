@@ -96,8 +96,19 @@ def login():
 
 
 def configure_model(container, model_config: ModelConfig, key: str):
+    MODEL_KEY = f"model_{key}"
+    TEMPERATURE_KEY = f"temperature_{key}"
+    TOP_P_KEY = f"top_p_{key}"
+    MAX_NEW_TOKENS_KEY = f"max_new_tokens_{key}"
+
+    if MODEL_KEY not in st.session_state:
+        st.session_state[MODEL_KEY] = model_config.model
+        st.session_state[TEMPERATURE_KEY] = model_config.temperature
+        st.session_state[TOP_P_KEY] = model_config.top_p
+        st.session_state[MAX_NEW_TOKENS_KEY] = model_config.max_new_tokens
+
     with container:
-        with st.popover(f"Configure `{model_config.model}`", use_container_width=True):
+        with st.popover(f"Configure `{st.session_state[MODEL_KEY]}`", use_container_width=True):
             MODEL_KEY = f"model_{key}"
             TEMPERATURE_KEY = f"temperature_{key}"
             TOP_P_KEY = f"top_p_{key}"
