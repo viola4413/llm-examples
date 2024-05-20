@@ -123,3 +123,8 @@ if len(conversations[0].messages) > 1:
         use_container_width=True,
         on_click=clear_history,
     )
+
+with st.sidebar:
+    if st.button("Export"):
+        for conversation in conversations:
+            print(conversation.to_json())

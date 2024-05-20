@@ -1,3 +1,4 @@
+import json
 from typing import List, Literal
 from pydantic import BaseModel
 import streamlit as st
@@ -40,3 +41,18 @@ class Conversation:
             container.chat_message(message.role).write(message.content)
         else:
             st.chat_message(message.role).write(message.content)
+
+    def to_json(self):
+        d = {
+            "messages": [dict(m) for m in self.messages],
+            "model_config": dict(self.model_config),
+        }
+        return json.dumps(d)
+
+    @classmethod
+    def from_json(cls, raw_json: str):
+        d = json.loads(raw_json, strict=False)
+        c = Conversation()
+        c.model_config = ModelConfig.parse_obj(d["model_config"])
+        c.messages = [Message.parse_obj(m) for m in d["messages"]]
+        return c
