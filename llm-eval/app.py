@@ -7,6 +7,7 @@ from common_ui import (
     page_setup,
     st_thread,
 )
+from conversation_manager import ConversationManager
 from schema import (
     Conversation,
     ConversationRecord,
@@ -31,6 +32,8 @@ AVAILABLE_MODELS = [
     "mistralai/mistral-7b-instruct-v0.2",
 ]
 
+conv_mgr: ConversationManager = st.session_state.conversation_manager
+
 # Store conversation state in streamlit session
 if "conversations" not in st.session_state:
     st.session_state["conversations"] = [Conversation(), Conversation()]
@@ -40,8 +43,7 @@ conversations: List[Conversation] = st.session_state["conversations"]
 
 # Handle case where we navigated to load an existing conversation:
 if to_load := st.session_state.pop("load_conversation", None):
-    index = [c.title for c in st.session_state.chat_history].index(to_load)
-    cr = st.session_state.chat_history[index]
+    cr = conv_mgr.get_by_title(to_load)
     st.session_state["conversations"] = cr.conversations
     st.session_state["conversation_title"] = cr.title
     st.rerun()
@@ -132,13 +134,20 @@ if len(conversations[0].messages) > 1:
         use_container_width=True,
         on_click=clear_history,
     )
+    action_cols[2].button(
+        "📝&nbsp; Record feedback",
+        use_container_width=True,
+        on_click=record_feedback,
+    )
 
     with st.sidebar:
         if st.button("✏️&nbsp; Edit title", use_container_width=True):
             edit_title()
-        if st.button("Export", use_container_width=True):
-            cr = ConversationRecord()
-            cr.user = st.session_state.get("user_name")
-            cr.conversations = conversations
-            cr.title = st.session_state.get("conversation_title")
-            print(cr.to_json())
+        if "user_name" in st.session_state and "conversation_title" in st.session_state:
+            if st.button("💾&nbsp; Save conversation", use_container_width=True):
+                cr = ConversationRecord(
+                    title=st.session_state.get("conversation_title"),
+                    user=st.session_state.get("user_name"),
+                    conversations=conversations,
+                )
+                conv_mgr.add_or_update(cr, persist=True)

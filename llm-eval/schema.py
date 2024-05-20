@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from typing import List, Literal
 from pydantic import BaseModel
 import streamlit as st
@@ -48,10 +49,18 @@ class ConversationRecord:
     user: str = ""
     title: str = ""
 
-    def __init__(self):
+    def __init__(
+        self,
+        *,
+        title: str,
+        user: str,
+        conversations: List[Conversation] = [],
+    ):
+        self.user = user
+        self.title = title
         self.conversations = []
-        self.user = ""
-        self.title = ""
+        for c in conversations:
+            self.conversations.append(deepcopy(c))
 
     def to_json(self):
         cr = {
@@ -71,10 +80,10 @@ class ConversationRecord:
     @classmethod
     def from_json(cls, raw_json: str):
         d = json.loads(raw_json, strict=False)
-        cr = ConversationRecord()
-        cr.user = d["user"]
-        cr.title = d["title"]
-        cr.conversations = []
+        cr = ConversationRecord(
+            title=d["title"],
+            user=d["user"],
+        )
         for c in d["conversations"]:
             conversation = Conversation()
             conversation.model_config = ModelConfig.parse_obj(c["model_config"])

@@ -5,10 +5,10 @@ import streamlit as st
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 from streamlit.runtime.scriptrunner.script_run_context import get_script_run_ctx
 
+from conversation_manager import ConversationManager
 from llm import generate_stream
 from schema import (
     Conversation,
-    ConversationRecord,
     Message,
     ModelConfig,
 )
@@ -47,7 +47,8 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
     st.logo(LOGO, link="https://www.snowflake.com", icon_image=ICON_LOGO)
     st.title(title)
 
-    load_chat_history()
+    if "conversation_manager" not in st.session_state:
+        st.session_state.conversation_manager = ConversationManager()
 
     # Add page navigation
     with st.sidebar:
@@ -71,11 +72,11 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
         st.write("")
 
         if not st.session_state.get("user_name"):
-            if st.button("Login", use_container_width=True):
+            if st.button("🔑&nbsp; Login", use_container_width=True):
                 login()
         else:
             st.write(f"Logged in user: `{st.session_state.user_name}`")
-            if st.button("Logout", use_container_width=True):
+            if st.button("🔑&nbsp; Logout", use_container_width=True):
                 st.session_state.user_name = None
                 st.session_state.admin_mode = None
                 if visibility != "public":
@@ -163,16 +164,3 @@ def st_thread(target, args) -> threading.Thread:
     thread = threading.Thread(target=target, args=args)
     add_script_run_ctx(thread, get_script_run_ctx())
     return thread
-
-
-def load_chat_history():
-    CURRENT_DIR = pathlib.Path(__file__).parent.resolve()
-    CONVERSATION_HISTORY_FILE = CURRENT_DIR / "data" / "conversation_history.jsonl"
-
-    if "chat_history" not in st.session_state:
-        chat_history = []
-        with open(CONVERSATION_HISTORY_FILE, "r") as f:
-            jl = f.readlines()
-        for c in jl:
-            chat_history.append(ConversationRecord.from_json(c))
-        st.session_state.chat_history = chat_history

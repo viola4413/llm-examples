@@ -1,18 +1,19 @@
 import streamlit as st
 
 from common_ui import page_setup
+from conversation_manager import ConversationManager
 
 page_setup("Personal Stats", visibility="user")
 
 user = st.session_state.get("user_name")
-history = [c for c in st.session_state.chat_history if c.user == user]
+conv_mgr: ConversationManager = st.session_state.conversation_manager
 
 st.header("Conversation history")
 
-selected = st.selectbox("Select a conversation:", [""] + [c.title for c in history])
+options = [""] + conv_mgr.get_user_conversation_titles(user)
+selected = st.selectbox("Select a conversation:", options)
 if selected:
-    index = [c.title for c in history].index(selected)
-    cr = history[index]
+    cr = conv_mgr.get_by_title(selected)
     st.subheader(cr.title)
     cols = st.columns(len(cr.conversations))
     for idx, col in enumerate(cols):
