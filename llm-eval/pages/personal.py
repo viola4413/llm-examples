@@ -10,7 +10,7 @@ conv_mgr: ConversationManager = st.session_state.conversation_manager
 
 st.header("Conversation history")
 
-options = [""] + conv_mgr.get_user_conversation_titles(user)
+options = [""] + conv_mgr.list_conversations_by_user(user)
 selected = st.selectbox("Select a conversation:", options)
 if selected:
     cr = conv_mgr.get_by_title(selected)

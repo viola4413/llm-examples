@@ -87,10 +87,15 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
 
 @st.experimental_dialog("Login")
 def login():
-    user_name = st.text_input("Username:")
-    admin_mode = st.checkbox("Admin mode")
+    conv_mgr: ConversationManager = st.session_state.conversation_manager
+    options = set([""])
+    options.update(conv_mgr.list_users())
+    existing = st.selectbox("Existing user:", options)
+    if not existing:
+        new_user = st.text_input("New user:")
+    admin_mode = st.checkbox("Admin mode", value=True)
     if st.button("Submit"):
-        st.session_state.user_name = user_name
+        st.session_state.user_name = existing or new_user
         st.session_state.admin_mode = admin_mode
         st.rerun()
 

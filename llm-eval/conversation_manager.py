@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import List
+from typing import List, Set
 from pathlib import Path
 from schema import ConversationRecord
 
@@ -21,11 +21,14 @@ class ConversationManager:
     def __init__(self):
         self._conversations = load_chat_history()
 
+    def list_users(self) -> Set[str]:
+        return set([c.user for c in self._conversations])
+
     def get_by_title(self, title: str) -> ConversationRecord:
         index = [c.title for c in self._conversations].index(title)
         return deepcopy(self._conversations[index])
 
-    def get_user_conversation_titles(self, user: str) -> List[str]:
+    def list_conversations_by_user(self, user: str) -> List[str]:
         return [c.title for c in self._conversations if c.user == user]
 
     def add_or_update(self, conv: ConversationRecord, persist=False):
