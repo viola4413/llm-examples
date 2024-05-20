@@ -10,8 +10,7 @@ from common_ui import (
 from schema import Conversation, Message
 
 page_setup(
-    title="Tasty Bytes Chat",
-    icon="❄️",
+    title="Chat",
     wide_mode=True,
     collapse_sidebar=False,
 )

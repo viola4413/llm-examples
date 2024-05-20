@@ -1,3 +1,4 @@
+import pathlib
 import threading
 
 import streamlit as st
@@ -15,7 +16,7 @@ AVAILABLE_MODELS = [
 ]
 
 
-def page_setup(title, icon, wide_mode=False, collapse_sidebar=False, visibility="public"):
+def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="public"):
     if "already_ran" not in st.session_state:
         st.set_option("client.showSidebarNavigation", False)
         st.session_state.already_ran = True
@@ -27,36 +28,37 @@ def page_setup(title, icon, wide_mode=False, collapse_sidebar=False, visibility=
     if visibility == "admin" and not st.session_state.get("admin_mode"):
         st.switch_page("app.py")
 
+    CURRENT_DIR = pathlib.Path(__file__).parent.resolve()
+    LOGO = str(CURRENT_DIR / "logo.png")
+    ICON_LOGO = str(CURRENT_DIR / "logo_small.png")
+
     st.set_page_config(
-        page_title=title,
-        page_icon=icon,
+        page_title=f"LLM Evaluation: {title}",
+        page_icon=ICON_LOGO,
         layout="wide" if wide_mode else "centered",
         initial_sidebar_state="collapsed" if collapse_sidebar else "auto",
     )
 
-    st.title(f"{icon} {title}")
+    st.logo(LOGO, link="https://www.snowflake.com", icon_image=ICON_LOGO)
+    st.title(title)
 
     # Add page navigation
     with st.sidebar:
-        st.image("tasty_bytes_banner.png")
-        st.title("Tasty Bytes LLM Eval")
-        st.caption(
-            "[Intro to Tasty Bytes](https://quickstarts.snowflake.com/guide/tasty_bytes_introduction/)"
-        )
+        st.header("LLM Evaluation")
 
         st.write("")
 
-        st.page_link("app.py", label="Direct Chat", icon="💬")
-        st.page_link("pages/about.py", label="About", icon="ℹ️")
+        st.page_link("app.py", label="Chat", icon=":material/chat:")
+        st.page_link("pages/about.py", label="About", icon=":material/info:")
 
         if st.session_state.get("user_name"):
-            st.page_link("pages/personal.py", label="Personal Stats", icon="🧑‍🚀")
+            st.page_link("pages/personal.py", label="Personal Stats", icon=":material/star:")
 
         if st.session_state.get("admin_mode"):
             st.subheader("Admin view")
-            st.page_link("pages/analysis.py", label="Conversation Analysis", icon="🔬")
-            st.page_link("pages/auto_eval.py", label="Automated Evaluation", icon="🤖")
-            st.page_link("pages/users.py", label="User Management", icon="👥")
+            st.page_link("pages/analysis.py", label="Conversation Analysis", icon=":material/analytics:")
+            st.page_link("pages/auto_eval.py", label="Automated Evaluation", icon=":material/quiz:")
+            st.page_link("pages/users.py", label="User Management", icon=":material/group:")
 
         st.write("")
         st.write("")
