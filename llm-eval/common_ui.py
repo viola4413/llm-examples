@@ -184,17 +184,27 @@ def chat_response(
     conversation: Conversation,
     container=None,
 ):
-    stream_iter = generate_stream(conversation)
-
-    if container:
-        chat = container.chat_message("assistant")
-    else:
-        chat = st.chat_message("assistant")
-    full_streamed_response = chat.write_stream(stream_iter)
     conversation.add_message(
-        Message(role="assistant", content=str(full_streamed_response).strip()),
+        Message(role="assistant", content=""),
         render=False,
     )
+    try:
+        stream_iter = generate_stream(conversation)
+
+        def generate_and_save():
+            for t in stream_iter:
+                conversation.messages[-1].content += str(t)
+                yield str(t)
+
+        if container:
+            chat = container.chat_message("assistant")
+        else:
+            chat = st.chat_message("assistant")
+        full_streamed_response = chat.write_stream(generate_and_save)
+        conversation.messages[-1].content = str(full_streamed_response).strip()
+    except Exception as e:
+        conversation.has_error = True
+        print("Error while generating chat response: " + str(e))
 
 
 def st_thread(target, args) -> threading.Thread:

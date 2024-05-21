@@ -31,6 +31,7 @@ class Conversation:
     messages: List[Message] = []
     model_config: ModelConfig = None
     feedback: ConversationFeedback = None
+    has_error: bool = None
 
     def __init__(self):
         self.reset_messages()

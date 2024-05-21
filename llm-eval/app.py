@@ -80,6 +80,7 @@ conversations: List[Conversation] = st.session_state["conversations"]
 
 ""
 
+# Render model config control
 if len(conversations) == 1:
     config_col_spec = [7, 3]
 else:
@@ -91,6 +92,18 @@ for idx, conversation in enumerate(conversations):
         model_config=conversation.model_config,
         key=f"{idx}",
     )
+
+# Handle any dangling errors from previous runs
+# (Doing it here means toasts will show up correctly)
+if any([c.has_error for c in conversations]):
+    st.toast(
+        "Something went wrong while generating a response. See logs for details.",
+        icon=":material/error:",
+    )
+    for c in conversations:
+        if len(c.messages[-1].content) == 0:
+            c.messages[-1].content = "Something went wrong while generating a response."
+        c.has_error = None
 
 # Render the chat
 for idx, msg in enumerate(conversations[0].messages):
@@ -129,6 +142,7 @@ if user_input:
     for t in threads:
         t.join()
     st.rerun()  # Clear stale containers
+
 
 # Add action buttons
 
