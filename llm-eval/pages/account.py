@@ -24,6 +24,10 @@ selected = st.selectbox("Select a conversation:", options)
 if selected:
     cr = conv_mgr.get_by_title(selected)
     st.subheader(cr.title)
+    if st.button("Load this conversation"):
+        st.session_state.load_conversation = cr.title
+        st.switch_page("app.py")
+    "#### Summary"
     cols = st.columns(len(cr.conversations))
     for idx, col in enumerate(cols):
         with col:
@@ -39,9 +43,8 @@ if selected:
                     txt = m.content[0:35] + "..."
                 f"**{m.role}:** {txt}"
 
-    if st.button("Load conversation"):
-        st.session_state.load_conversation = cr.title
-        st.switch_page("app.py")
+""
+""
 
 st.subheader("Conversation export")
 

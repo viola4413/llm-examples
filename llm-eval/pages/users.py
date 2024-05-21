@@ -5,6 +5,8 @@ from conversation_manager import ConversationManager
 
 page_setup("User Management", visibility="admin")
 
+st.caption("View basic stats for existing users. More features coming soon.")
+
 conv_mgr: ConversationManager = st.session_state.conversation_manager
 users = conv_mgr.list_users()
 
