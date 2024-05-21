@@ -148,6 +148,8 @@ def record_feedback():
     if flagged:
         flagged_comments = st.text_input("Why is this flagged?", value=vals.get("flagged_comments"))
 
+    if not st.session_state.get("user_name"):
+        st.warning("Please login to persist your feedback", icon=":material/warning:")
     if st.button("Submit"):
         if not category:
             warning_spot.warning("Category is required", icon=":material/warning:")
@@ -164,16 +166,19 @@ def record_feedback():
         if category == "Other":
             feedback.custom_category = custom_category
         conversations[conv_idx].feedback = feedback
-        save_conversation()
-        st.session_state["pending_feedback"] = True
+        if st.session_state.get("user_name"):
+            save_conversation()
+            st.session_state["pending_feedback"] = True
         st.rerun()
 
 
-def clear_history():
+def clear_conversation():
     for conversation in conversations:
         conversation.reset_messages()
         conversation.add_message(Message(role="assistant", content=DEFAULT_MESSAGE), render=False)
-    st.toast("Cleared this conversation", icon=":material/layers_clear:")
+        conversation.feedback = None
+    st.session_state.pop("conversation_title", None)
+    st.toast("Started new chat", icon=":material/edit_square:")
 
 
 def regenerate():
@@ -198,12 +203,12 @@ if len(conversations[0].messages) > 1:
 
     action_cols[0].button("🔄&nbsp; Regenerate", use_container_width=True, on_click=regenerate)
     action_cols[1].button(
-        "🗑&nbsp; Clear conversation",
+        "📝&nbsp; New chat",
         use_container_width=True,
-        on_click=clear_history,
+        on_click=clear_conversation,
     )
     if action_cols[2].button(
-        "📝&nbsp; Record feedback",
+        "📬&nbsp; Add feedback",
         use_container_width=True,
     ):
         record_feedback()
