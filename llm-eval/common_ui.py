@@ -15,7 +15,7 @@ from schema import (
 
 
 def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="public"):
-    if "already_ran" not in st.session_state:
+    if st.get_option("client.showSidebarNavigation") and "already_ran" not in st.session_state:
         st.set_option("client.showSidebarNavigation", False)
         st.session_state.already_ran = True
         st.rerun()
