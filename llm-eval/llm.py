@@ -2,6 +2,14 @@ import replicate
 from schema import Conversation
 
 
+FRIENDLY_MAPPING = {
+    "Snowflake Arctic": "snowflake/snowflake-arctic-instruct",
+    "LLaMa 3 8B": "meta/meta-llama-3-8b",
+    "Mistral 7B": "mistralai/mistral-7b-instruct-v0.2",
+}
+AVAILABLE_MODELS = [k for k in FRIENDLY_MAPPING.keys()]
+
+
 def encode_arctic(conversation: Conversation):
     prompt = []
     for msg in conversation.messages:
@@ -50,7 +58,8 @@ def generate_stream(
     conversation: Conversation,
 ):
     model_config = conversation.model_config
-    prompt_str = ENCODING_MAPPING[model_config.model](conversation)
+    full_model_name = FRIENDLY_MAPPING[model_config.model]
+    prompt_str = ENCODING_MAPPING[full_model_name](conversation)
 
     model_input = {
         "prompt": prompt_str,
@@ -58,7 +67,7 @@ def generate_stream(
         "temperature": model_config.temperature,
         "top_p": model_config.top_p,
     }
-    stream = replicate.stream(model_config.model, input=model_input)
+    stream = replicate.stream(full_model_name, input=model_input)
 
     for t in stream:
         yield str(t)

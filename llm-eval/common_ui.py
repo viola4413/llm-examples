@@ -6,19 +6,12 @@ from streamlit.runtime.scriptrunner import add_script_run_ctx
 from streamlit.runtime.scriptrunner.script_run_context import get_script_run_ctx
 
 from conversation_manager import ConversationManager
-from llm import generate_stream
+from llm import generate_stream, AVAILABLE_MODELS
 from schema import (
     Conversation,
     Message,
     ModelConfig,
 )
-
-
-AVAILABLE_MODELS = [
-    "snowflake/snowflake-arctic-instruct",
-    "meta/meta-llama-3-8b",
-    "mistralai/mistral-7b-instruct-v0.2",
-]
 
 
 def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="public"):
@@ -120,7 +113,7 @@ def configure_model(container, model_config: ModelConfig, key: str):
         st.session_state[MAX_NEW_TOKENS_KEY] = model_config.max_new_tokens
 
     with container:
-        with st.popover(f"Configure `{st.session_state[MODEL_KEY]}`", use_container_width=True):
+        with st.popover(f"Configure :blue[{st.session_state[MODEL_KEY]}]", use_container_width=True):
             MODEL_KEY = f"model_{key}"
             TEMPERATURE_KEY = f"temperature_{key}"
             TOP_P_KEY = f"top_p_{key}"

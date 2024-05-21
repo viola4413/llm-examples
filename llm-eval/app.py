@@ -27,11 +27,6 @@ sidebar_container = page_setup(
 
 DEFAULT_MESSAGE = "Hello there! Let's chat?"
 MODELS_HELP_STR = "Select an available model"
-AVAILABLE_MODELS = [
-    "snowflake/snowflake-arctic-instruct",
-    "meta/meta-llama-3-8b",
-    "mistralai/mistral-7b-instruct-v0.2",
-]
 
 # Store conversation state in streamlit session
 if "conversations" not in st.session_state:
