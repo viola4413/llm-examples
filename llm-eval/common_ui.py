@@ -53,7 +53,7 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
         st.page_link("app.py", label="Chat", icon=":material/chat:")
 
         if st.session_state.get("user_name"):
-            st.page_link("pages/personal.py", label="My Account", icon=":material/account_circle:")
+            st.page_link("pages/account.py", label="My Account", icon=":material/account_circle:")
 
         if st.session_state.get("admin_mode"):
             st.subheader("Admin view")
