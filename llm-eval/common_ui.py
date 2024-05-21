@@ -40,6 +40,11 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
     st.logo(LOGO, link="https://www.snowflake.com", icon_image=ICON_LOGO)
     st.title(title)
 
+    # Check for initial login via query_params
+    if initial_user := st.query_params.get("user"):
+        st.session_state.user_name = initial_user
+        del st.query_params["user"]
+
     if "conversation_manager" not in st.session_state:
         st.session_state.conversation_manager = ConversationManager()
 
