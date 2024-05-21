@@ -47,9 +47,31 @@ if to_load := st.session_state.pop("load_conversation", None):
     st.session_state["conversation_title"] = cr.title
     st.rerun()
 
+
+# Handle changing from single or multi model mode
+def update_model_mode():
+    if st.session_state.multi_mode:
+        st.session_state["conversations"] = [Conversation(), Conversation()]
+    else:
+        st.session_state["conversations"] = [Conversation()]
+    for conversation in st.session_state["conversations"]:
+        conversation.add_message(Message(role="assistant", content=DEFAULT_MESSAGE), render=False)
+
+
+with st.sidebar:
+    enable_toggle = (
+        "conversations" in st.session_state and len(st.session_state.conversations[0].messages) > 2
+    )
+    st.toggle(
+        "Multi-model mode",
+        disabled=enable_toggle,
+        key="multi_mode",
+        on_change=update_model_mode,
+    )
+
 # Store conversation state in streamlit session
 if "conversations" not in st.session_state:
-    st.session_state["conversations"] = [Conversation(), Conversation()]
+    st.session_state["conversations"] = [Conversation()]
     for conversation in st.session_state["conversations"]:
         conversation.add_message(Message(role="assistant", content=DEFAULT_MESSAGE), render=False)
 conversations: List[Conversation] = st.session_state["conversations"]
@@ -60,7 +82,12 @@ conversations: List[Conversation] = st.session_state["conversations"]
 
 model_cols = st.columns(len(conversations))
 for idx, conversation in enumerate(conversations):
-    conversation.model_config = configure_model(model_cols[idx], conversation.model_config, key=f"{idx}")
+    conversation.model_config = configure_model(
+        container=model_cols[idx],
+        model_config=conversation.model_config,
+        key=f"{idx}",
+        full_width=False,  # (len(conversations) > 1),
+    )
 
 # Render the chat
 for idx, msg in enumerate(conversations[0].messages):
@@ -113,10 +140,9 @@ def record_feedback():
             f"Right: `{conversations[1].model_config.model}`",
         ]
         model = st.radio("Which model response are you providing feedback on?", model_choices)
-        if len(conversations) == 2:
-            conv_idx = model_choices.index(model)
-        else:
-            conv_idx = 0
+        conv_idx = model_choices.index(model)
+    else:
+        conv_idx = 0
 
     # Support pre-populating existing values from earlier feedback
     vals = {}
@@ -130,7 +156,10 @@ def record_feedback():
             flagged_comments=existing.flagged_comments,
         )
 
-    warning_spot = st.empty()
+    if "conversation_title" not in st.session_state:
+        title_warning = st.empty()
+        title = st.text_input("Conversation title:", help="Add a short, descriptive title")
+    category_warning = st.empty()
     category = st.selectbox("Topic category:", TOPIC_CATEGORIES, index=vals.get("category_idx"))
     if category == "Other":
         custom_category = st.text_input("Custom category:", value=vals.get("custom_category"))
@@ -152,7 +181,7 @@ def record_feedback():
         st.warning("Please login to persist your feedback", icon=":material/warning:")
     if st.button("Submit"):
         if not category:
-            warning_spot.warning("Category is required", icon=":material/warning:")
+            category_warning.warning("Category is required", icon=":material/warning:")
             st.stop()
         feedback = ConversationFeedback(
             category=category,
@@ -167,6 +196,12 @@ def record_feedback():
             feedback.custom_category = custom_category
         conversations[conv_idx].feedback = feedback
         if st.session_state.get("user_name"):
+            if "conversation_title" not in st.session_state:
+                if title:
+                    st.session_state.conversation_title = title
+                else:
+                    title_warning.warning("Title is required", icon=":material/warning:")
+                    st.stop()
             save_conversation()
             st.session_state["pending_feedback"] = True
         st.rerun()

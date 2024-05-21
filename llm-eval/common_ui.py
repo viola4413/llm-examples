@@ -102,7 +102,7 @@ def login():
         st.rerun()
 
 
-def configure_model(container, model_config: ModelConfig, key: str):
+def configure_model(*, container, model_config: ModelConfig, key: str, full_width: bool = False):
     MODEL_KEY = f"model_{key}"
     TEMPERATURE_KEY = f"temperature_{key}"
     TOP_P_KEY = f"top_p_{key}"
@@ -115,7 +115,9 @@ def configure_model(container, model_config: ModelConfig, key: str):
         st.session_state[MAX_NEW_TOKENS_KEY] = model_config.max_new_tokens
 
     with container:
-        with st.popover(f"Configure :blue[{st.session_state[MODEL_KEY]}]", use_container_width=True):
+        with st.popover(
+            f"Configure :blue[{st.session_state[MODEL_KEY]}]", use_container_width=full_width
+        ):
             MODEL_KEY = f"model_{key}"
             TEMPERATURE_KEY = f"temperature_{key}"
             TOP_P_KEY = f"top_p_{key}"
