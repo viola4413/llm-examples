@@ -71,11 +71,16 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
         st.write("")
         st.write("")
 
-        if not st.session_state.get("user_name"):
+        user = st.session_state.get("user_name")
+        if user:
+            st.write(f"Logged in user: `{user}`")
+
+        sidebar_container = st.container()
+
+        if not user:
             if st.button("🔑&nbsp; Login", use_container_width=True):
                 login()
         else:
-            st.write(f"Logged in user: `{st.session_state.user_name}`")
             if st.button("🔑&nbsp; Logout", use_container_width=True):
                 st.session_state.user_name = None
                 st.session_state.admin_mode = None
@@ -83,6 +88,8 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
                     st.switch_page("app.py")
                 else:
                     st.rerun()
+
+    return sidebar_container
 
 
 @st.experimental_dialog("Login")

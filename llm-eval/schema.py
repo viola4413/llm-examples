@@ -17,13 +17,24 @@ class Message(BaseModel):
     content: str
 
 
+class ConversationFeedback(BaseModel):
+    category: str
+    custom_category: str = ""
+    quality_score: float
+    comments: str = ""
+    flagged: bool = False
+    flagged_comments: str = ""
+
+
 class Conversation:
     messages: List[Message] = []
     model_config: ModelConfig = None
+    feedback: ConversationFeedback = None
 
     def __init__(self):
         self.reset_messages()
-        self.model_config = ModelConfig()
+        self.model_config: ModelConfig = ModelConfig()
+        self.feedback: ConversationFeedback = None
 
     def add_message(self, message: Message, container=None, render=True):
         self.messages.append(message)
@@ -31,7 +42,7 @@ class Conversation:
             self.render_message(message, container)
 
     def reset_messages(self):
-        self.messages = []
+        self.messages: List[Message] = []
 
     def render_all(self, container=None):
         for message in self.messages:
@@ -69,12 +80,13 @@ class ConversationRecord:
             "title": self.title,
         }
         for conv in self.conversations:
-            cr["conversations"].append(
-                {
-                    "messages": [dict(m) for m in conv.messages],
-                    "model_config": dict(conv.model_config),
-                }
-            )
+            c = {
+                "messages": [dict(m) for m in conv.messages],
+                "model_config": dict(conv.model_config),
+            }
+            if conv.feedback:
+                c["feedback"] = dict(conv.feedback)
+            cr["conversations"].append(c)
         return json.dumps(cr)
 
     @classmethod
@@ -88,5 +100,7 @@ class ConversationRecord:
             conversation = Conversation()
             conversation.model_config = ModelConfig.parse_obj(c["model_config"])
             conversation.messages = [Message.parse_obj(m) for m in c["messages"]]
+            if "feedback" in c:
+                conversation.feedback = ConversationFeedback.parse_obj(c["feedback"])
             cr.conversations.append(conversation)
         return cr
