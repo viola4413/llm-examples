@@ -28,6 +28,7 @@ if selected:
             "**Model Config**"
             st.json(dict(c.model_config), expanded=False)
             st.write("✅ **Feedback submitted**" if c.feedback else "❌ **Feedback missing**")
+            st.write(c.messages_to_text())
             for m in c.messages:
                 if len(m.content) < 35:
                     txt = m.content

@@ -54,6 +54,16 @@ class Conversation:
         else:
             st.chat_message(message.role).write(message.content)
 
+    def messages_to_text(self, truncate=True):
+        msgs = []
+        for m in self.messages[1:]:
+            if len(m.content) < 35 or not truncate:
+                txt = m.content
+            else:
+                txt = m.content[0:35] + "..."
+            msgs.append(f"{m.role}: {txt}")
+        return "\n\n".join(msgs)
+
 
 class ConversationRecord:
     conversations: List[Conversation] = []
