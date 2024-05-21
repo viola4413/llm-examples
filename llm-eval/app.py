@@ -28,13 +28,6 @@ sidebar_container = page_setup(
 DEFAULT_MESSAGE = "Hello there! Let's chat?"
 MODELS_HELP_STR = "Select an available model"
 
-# Store conversation state in streamlit session
-if "conversations" not in st.session_state:
-    st.session_state["conversations"] = [Conversation(), Conversation()]
-    for conversation in st.session_state["conversations"]:
-        conversation.add_message(Message(role="assistant", content=DEFAULT_MESSAGE), render=False)
-conversations: List[Conversation] = st.session_state["conversations"]
-
 conv_mgr: ConversationManager = st.session_state.conversation_manager
 
 
@@ -42,7 +35,7 @@ def save_conversation():
     cr = ConversationRecord(
         title=st.session_state.get("conversation_title"),
         user=st.session_state.get("user_name"),
-        conversations=conversations,
+        conversations=st.session_state["conversations"],
     )
     conv_mgr.add_or_update(cr, persist=True)
 
@@ -53,6 +46,13 @@ if to_load := st.session_state.pop("load_conversation", None):
     st.session_state["conversations"] = cr.conversations
     st.session_state["conversation_title"] = cr.title
     st.rerun()
+
+# Store conversation state in streamlit session
+if "conversations" not in st.session_state:
+    st.session_state["conversations"] = [Conversation(), Conversation()]
+    for conversation in st.session_state["conversations"]:
+        conversation.add_message(Message(role="assistant", content=DEFAULT_MESSAGE), render=False)
+conversations: List[Conversation] = st.session_state["conversations"]
 
 # Main area
 
