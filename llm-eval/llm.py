@@ -1,5 +1,6 @@
+from typing import List
 import replicate
-from schema import Conversation
+from schema import Conversation, Message, ModelConfig
 
 
 FRIENDLY_MAPPING = {
@@ -10,9 +11,9 @@ FRIENDLY_MAPPING = {
 AVAILABLE_MODELS = [k for k in FRIENDLY_MAPPING.keys()]
 
 
-def encode_arctic(conversation: Conversation):
+def encode_arctic(messages: List[Message]):
     prompt = []
-    for msg in conversation.messages:
+    for msg in messages:
         prompt.append(f"<|im_start|>{msg.role}\n{msg.content}<|im_end|>")
 
     prompt.append("<|im_start|>assistant")
@@ -21,10 +22,10 @@ def encode_arctic(conversation: Conversation):
     return prompt_str
 
 
-def encode_llama3(conversation: Conversation):
+def encode_llama3(messages: List[Message]):
     prompt = []
     prompt.append("<|begin_of_text|>")
-    for msg in conversation.messages:
+    for msg in messages:
         prompt.append(f"<|start_header_id|>{msg.role}<|end_header_id|>")
         prompt.append(f"{msg.content.strip()}<|eot_id|>")
     prompt.append("<|start_header_id|>assistant<|end_header_id|>")
@@ -33,13 +34,10 @@ def encode_llama3(conversation: Conversation):
     return prompt_str
 
 
-def encode_generic(conversation: Conversation):
+def encode_generic(messages: List[Message]):
     prompt = []
-    for msg in conversation.messages:
-        if msg.role == "user":
-            prompt.append("user:\n" + msg.content)
-        else:
-            prompt.append("assistant:\n" + msg.content)
+    for msg in messages:
+        prompt.append(f"{msg.role}:\n" + msg.content)
 
     prompt.append("assistant:")
     prompt.append("")
@@ -57,9 +55,16 @@ ENCODING_MAPPING = {
 def generate_stream(
     conversation: Conversation,
 ):
-    model_config = conversation.model_config
+    messages = conversation.messages
+    model_config: ModelConfig = conversation.model_config
     full_model_name = FRIENDLY_MAPPING[model_config.model]
-    prompt_str = ENCODING_MAPPING[full_model_name](conversation)
+
+    if model_config.system_prompt:
+        system_msg = Message(role="system", content=model_config.system_prompt)
+        messages = [system_msg]
+        messages.extend(conversation.messages)
+
+    prompt_str = ENCODING_MAPPING[full_model_name](messages)
 
     model_input = {
         "prompt": prompt_str,

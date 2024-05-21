@@ -80,13 +80,16 @@ conversations: List[Conversation] = st.session_state["conversations"]
 
 ""
 
-model_cols = st.columns(len(conversations))
+if len(conversations) == 1:
+    config_col_spec = [7, 3]
+else:
+    config_col_spec = [5, 5]
+model_config_cols = st.columns(config_col_spec)
 for idx, conversation in enumerate(conversations):
     conversation.model_config = configure_model(
-        container=model_cols[idx],
+        container=model_config_cols[idx],
         model_config=conversation.model_config,
         key=f"{idx}",
-        full_width=False,  # (len(conversations) > 1),
     )
 
 # Render the chat

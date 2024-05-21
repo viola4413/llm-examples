@@ -10,10 +10,11 @@ class ModelConfig(BaseModel):
     temperature: float = 0.7
     top_p: float = 1.0
     max_new_tokens: int = 1024
+    system_prompt: str = ""
 
 
 class Message(BaseModel):
-    role: Literal["user", "assistant"]
+    role: Literal["user", "assistant", "system"]
     content: str
 
 
