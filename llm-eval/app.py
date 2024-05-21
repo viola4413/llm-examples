@@ -37,7 +37,7 @@ def save_conversation():
         user=st.session_state.get("user_name"),
         conversations=st.session_state["conversations"],
     )
-    conv_mgr.add_or_update(cr, persist=True)
+    conv_mgr.add_or_update(cr, persist=st.secrets.get("enablePersistence", True))
 
 
 # Handle case where we navigated to load an existing conversation:
