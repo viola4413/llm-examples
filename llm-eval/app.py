@@ -207,13 +207,14 @@ if len(conversations[0].messages) > 1:
     ):
         record_feedback()
 
-    with sidebar_container:
-        if st.button("✏️&nbsp; Edit title", use_container_width=True):
-            edit_title()
-        if "user_name" in st.session_state and "conversation_title" in st.session_state:
-            if st.button("💾&nbsp; Save conversation", use_container_width=True):
-                save_conversation()
-                st.toast("Conversation saved successfully", icon=":material/check_circle:")
+    if st.session_state.get("user_name"):
+        with sidebar_container:
+            if st.button("✏️&nbsp; Edit title", use_container_width=True):
+                edit_title()
+            if "user_name" in st.session_state and "conversation_title" in st.session_state:
+                if st.button("💾&nbsp; Save conversation", use_container_width=True):
+                    save_conversation()
+                    st.toast("Conversation saved successfully", icon=":material/check_circle:")
 
 if st.session_state.pop("pending_feedback", None):
     st.toast("Feedback submitted successfully", icon=":material/rate_review:")

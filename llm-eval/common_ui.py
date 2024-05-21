@@ -47,13 +47,13 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
     with st.sidebar:
         st.header("LLM Evaluation")
 
-        st.write("")
+        # st.write("")
 
-        st.page_link("app.py", label="Chat", icon=":material/chat:")
         st.page_link("pages/about.py", label="About", icon=":material/info:")
+        st.page_link("app.py", label="Chat", icon=":material/chat:")
 
         if st.session_state.get("user_name"):
-            st.page_link("pages/personal.py", label="Personal Stats", icon=":material/star:")
+            st.page_link("pages/personal.py", label="My Account", icon=":material/account_circle:")
 
         if st.session_state.get("admin_mode"):
             st.subheader("Admin view")
@@ -62,25 +62,22 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
             st.page_link("pages/users.py", label="User Management", icon=":material/group:")
 
         st.write("")
-        st.write("")
 
-        user = st.session_state.get("user_name")
-        if user:
-            st.write(f"Logged in user: `{user}`")
-
-        sidebar_container = st.container()
-
-        if not user:
+        if user := st.session_state.get("user_name"):
+            with st.popover("⚙️&nbsp; Settings", use_container_width=True):
+                st.write(f"Logged in user: `{user}`")
+                sidebar_container = st.container()
+                if st.button("🔑&nbsp; Logout", use_container_width=True):
+                    st.session_state.user_name = None
+                    st.session_state.admin_mode = None
+                    if visibility != "public":
+                        st.switch_page("app.py")
+                    else:
+                        st.rerun()
+        else:
+            sidebar_container = st.container()
             if st.button("🔑&nbsp; Login", use_container_width=True):
                 login()
-        else:
-            if st.button("🔑&nbsp; Logout", use_container_width=True):
-                st.session_state.user_name = None
-                st.session_state.admin_mode = None
-                if visibility != "public":
-                    st.switch_page("app.py")
-                else:
-                    st.rerun()
 
     return sidebar_container
 

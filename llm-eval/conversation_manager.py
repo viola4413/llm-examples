@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import List, Set
 from pathlib import Path
-from schema import ConversationRecord
+from schema import Conversation, ConversationRecord
 
 
 CURRENT_DIR = Path(__file__).parent.resolve()
@@ -30,6 +30,15 @@ class ConversationManager:
 
     def list_conversations_by_user(self, user: str) -> List[str]:
         return [c.title for c in self._conversations if c.user == user]
+
+    def get_all_conversations(self, *, user: str = None) -> List[Conversation]:
+        all_records = self._conversations
+        if user:
+            all_records = [c for c in self._conversations if c.user == user]
+        all_conversations = []
+        for rec in all_records:
+            all_conversations.extend(rec.conversations)
+        return deepcopy(all_conversations)
 
     def add_or_update(self, conv: ConversationRecord, persist=False):
         conv_copy = deepcopy(conv)

@@ -3,10 +3,16 @@ import streamlit as st
 from common_ui import page_setup
 from conversation_manager import ConversationManager
 
-page_setup("Personal Stats", visibility="user")
-
 user = st.session_state.get("user_name")
 conv_mgr: ConversationManager = st.session_state.conversation_manager
+
+page_setup(f"My Account: {user}", visibility="user")
+
+conversations = conv_mgr.get_all_conversations(user=user)
+
+metric_cols = st.columns(2)
+metric_cols[0].metric("Total conversations x models", len(conversations))
+metric_cols[1].metric("Total feedback", len([c for c in conversations if c.feedback]))
 
 st.header("Conversation history")
 
@@ -21,6 +27,7 @@ if selected:
             c = cr.conversations[idx]
             "**Model Config**"
             st.json(dict(c.model_config), expanded=False)
+            st.write("✅ **Feedback submitted**" if c.feedback else "❌ **Feedback missing**")
             for m in c.messages:
                 if len(m.content) < 35:
                     txt = m.content
