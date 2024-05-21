@@ -9,6 +9,7 @@ page_setup("My Account", visibility="user")
 user = st.session_state.get("user_name")
 conv_mgr: ConversationManager = st.session_state.conversation_manager
 conversations = conv_mgr.get_all_conversations(user=user)
+user_titles = conv_mgr.list_conversations_by_user(user)
 
 st.header(f"User: {user}")
 
@@ -18,7 +19,7 @@ metric_cols[1].metric("Total feedback", len([c for c in conversations if c.feedb
 
 st.subheader("Conversation history")
 
-options = [""] + conv_mgr.list_conversations_by_user(user)
+options = [""] + user_titles
 selected = st.selectbox("Select a conversation:", options)
 if selected:
     cr = conv_mgr.get_by_title(selected)
@@ -41,3 +42,31 @@ if selected:
     if st.button("Load conversation"):
         st.session_state.load_conversation = cr.title
         st.switch_page("app.py")
+
+st.subheader("Conversation export")
+
+
+@st.experimental_dialog("Export conversations")
+def export():
+    records = []
+    for title in user_titles:
+        records.append(conv_mgr.get_by_title(title))
+
+    output = "\n".join([r.to_json() for r in records])
+    st.caption("Highlight and copy the output from here:")
+    st.code(output, language="txt")
+    ""
+    st.caption("Or download as a .jsonl:")
+    st.download_button(
+        "Download conversations",
+        output,
+        file_name="conversations.jsonl",
+        mime="application/jsonl+json",
+    )
+    st.divider()
+    if st.button("All done, thanks!"):
+        st.rerun()
+
+
+if st.button("Export my conversations"):
+    export()

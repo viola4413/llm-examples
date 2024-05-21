@@ -155,9 +155,10 @@ def record_feedback():
         feedback = ConversationFeedback(
             category=category,
             quality_score=score / 10.0,
-            comments=comments,
             flagged=flagged,
         )
+        if comments:
+            feedback.comments = comments
         if flagged and flagged_comments:
             feedback.flagged_comments = flagged_comments
         if category == "Other":
