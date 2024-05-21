@@ -1,5 +1,7 @@
+import json
 import pathlib
 import threading
+from typing import Dict
 
 import streamlit as st
 from streamlit.runtime.scriptrunner import add_script_run_ctx
@@ -205,6 +207,51 @@ def chat_response(
     except Exception as e:
         conversation.has_error = True
         print("Error while generating chat response: " + str(e))
+
+
+def generate_title(
+    user_input: str,
+    response_dict: Dict,
+):
+    SYSTEM_PROMPT = """
+        You are a helpful assistant generating a brief summary title of a
+        conversation based on the users input. The summary title should
+        be no more than 4-5 words, with 2-3 words as a typical response.
+        In general, brief is better when the title is a clear summary.
+
+        Input will be provided in JSON format and you should specify the
+        output in JSON format. Do not add any commentary or discussion.
+        ONLY return the JSON.
+
+        Here are a few examples:
+        INPUT: {"input": "Hey, I'm looking for tips on planning a trip to Chicago. What should I do while I'm there?"}
+        OUTPUT: {"summary": "Visiting Chicago"}
+
+        INPUT: {"input": "I've been scripting and doing simple database work for a few years and I want to learn frontend web development. Where should I start?"}
+        OUTPUT: {"summary": "Learning frontend development"}
+
+        INPUT: {"input": "Can you share a few jokes?"}
+        OUTPUT: {"summary": "Sharing jokes"}
+
+        Ok, now your turn. Remember to only respond with the JSON.
+        ------------------------------------------
+    """
+    conversation = Conversation()
+    conversation.model_config = ModelConfig(system_prompt=SYSTEM_PROMPT)
+    input_msg = json.dumps({"input": user_input})
+    conversation.add_message(Message(role="user", content=input_msg), render=False)
+    title_json = ""
+    try:
+        stream_iter = generate_stream(conversation)
+        for t in stream_iter:
+            title_json += str(t)
+        result = json.loads(title_json)
+        response_dict["output"] = result["summary"]
+
+    except Exception as e:
+        response_dict["error"] = True
+        print("Error while generating title: " + str(e))
+        print("Response:" + title_json)
 
 
 def st_thread(target, args) -> threading.Thread:
