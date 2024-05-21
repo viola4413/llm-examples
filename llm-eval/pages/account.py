@@ -3,18 +3,20 @@ import streamlit as st
 from common_ui import page_setup
 from conversation_manager import ConversationManager
 
+
+page_setup("My Account", visibility="user")
+
 user = st.session_state.get("user_name")
 conv_mgr: ConversationManager = st.session_state.conversation_manager
-
-page_setup(f"My Account: {user}", visibility="user")
-
 conversations = conv_mgr.get_all_conversations(user=user)
+
+st.header(f"User: {user}")
 
 metric_cols = st.columns(2)
 metric_cols[0].metric("Total conversations x models", len(conversations))
 metric_cols[1].metric("Total feedback", len([c for c in conversations if c.feedback]))
 
-st.header("Conversation history")
+st.subheader("Conversation history")
 
 options = [""] + conv_mgr.list_conversations_by_user(user)
 selected = st.selectbox("Select a conversation:", options)
