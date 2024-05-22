@@ -109,30 +109,19 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
     TEMPERATURE_KEY = f"temperature_{key}"
     TOP_P_KEY = f"top_p_{key}"
     MAX_NEW_TOKENS_KEY = f"max_new_tokens_{key}"
+    SYSTEM_PROMPT_KEY = f"system_prompt_{key}"
 
     if MODEL_KEY not in st.session_state:
         st.session_state[MODEL_KEY] = model_config.model
         st.session_state[TEMPERATURE_KEY] = model_config.temperature
         st.session_state[TOP_P_KEY] = model_config.top_p
         st.session_state[MAX_NEW_TOKENS_KEY] = model_config.max_new_tokens
+        st.session_state[SYSTEM_PROMPT_KEY] = model_config.system_prompt
 
     with container:
         with st.popover(
             f"Configure :blue[{st.session_state[MODEL_KEY]}]", use_container_width=full_width
         ):
-            MODEL_KEY = f"model_{key}"
-            TEMPERATURE_KEY = f"temperature_{key}"
-            TOP_P_KEY = f"top_p_{key}"
-            MAX_NEW_TOKENS_KEY = f"max_new_tokens_{key}"
-            SYSTEM_PROMPT_KEY = f"system_prompt_{key}"
-
-            if MODEL_KEY not in st.session_state:
-                st.session_state[MODEL_KEY] = model_config.model
-                st.session_state[TEMPERATURE_KEY] = model_config.temperature
-                st.session_state[TOP_P_KEY] = model_config.top_p
-                st.session_state[MAX_NEW_TOKENS_KEY] = model_config.max_new_tokens
-                st.session_state[SYSTEM_PROMPT_KEY] = model_config.system_prompt
-
             left1, right1 = st.columns(2)
             left2, right2 = st.columns(2)
             with left1:
