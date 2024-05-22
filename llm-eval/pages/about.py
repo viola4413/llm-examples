@@ -4,6 +4,10 @@ from common_ui import page_setup
 
 page_setup("About")
 
+st.info(
+    """**TLDR:** Click "Chat" on the left, play around, then come back here to see what you missed.""",
+    icon="👈",
+)
 
 DESCRIPTION = """
 ### Overview
