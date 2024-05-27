@@ -1,6 +1,7 @@
 import json
 import pathlib
 import threading
+from copy import deepcopy
 from typing import Dict
 
 import streamlit as st
@@ -175,12 +176,13 @@ def chat_response(
     conversation: Conversation,
     container=None,
 ):
-    conversation.add_message(
-        Message(role="assistant", content=""),
-        render=False,
-    )
     try:
-        stream_iter = generate_stream(conversation)
+        stream_iter = generate_stream(deepcopy(conversation))
+
+        conversation.add_message(
+            Message(role="assistant", content=""),
+            render=False,
+        )
 
         def generate_and_save():
             for t in stream_iter:
@@ -195,7 +197,7 @@ def chat_response(
         conversation.messages[-1].content = str(full_streamed_response).strip()
     except Exception as e:
         conversation.has_error = True
-        print("Error while generating chat response: " + str(e))
+        print(f"Error while generating chat response: {type(e).__name__}: {e}")
 
 
 def generate_title(
