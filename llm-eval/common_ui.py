@@ -99,8 +99,9 @@ def login():
     if not existing:
         new_user = st.text_input("New user:")
     admin_mode = st.checkbox("Admin mode", value=True)
-    if st.button("Submit"):
-        st.session_state.user_name = existing or new_user
+    user_name = existing or new_user
+    if st.button("Submit", disabled=not user_name):
+        st.session_state.user_name = user_name
         st.session_state.admin_mode = admin_mode
         st.rerun()
 
