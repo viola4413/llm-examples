@@ -54,3 +54,4 @@ class ConversationManager:
             jsonl.append(conv.to_json())
         with open(CONVERSATION_HISTORY_FILE, "w") as f:
             f.write("\n".join(jsonl))
+            f.write("\n")
