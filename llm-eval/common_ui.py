@@ -55,8 +55,6 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
     with st.sidebar:
         st.header("LLM Evaluation")
 
-        # st.write("")
-
         st.page_link("pages/about.py", label="About", icon=":material/info:")
         st.page_link("app.py", label="Chat", icon=":material/chat:")
 
@@ -144,6 +142,13 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                     key=SYSTEM_PROMPT_KEY,
                     help=SYSTEM_PROMPT_HELP,
                 )
+
+                if model_config.model == "Mistral 7B":
+                    MISTRAL_NOTE = """
+                        **Note:** Mistral 7b only supports short responses, it may
+                        be truncated earlier than expected.
+                    """
+                    st.caption(MISTRAL_NOTE)
 
             with right1:
                 model_config.temperature = st.slider(
