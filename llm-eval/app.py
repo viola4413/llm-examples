@@ -35,6 +35,7 @@ conv_mgr: ConversationManager = st.session_state.conversation_manager
 def save_conversation():
     cr = ConversationRecord(
         title=st.session_state.get("conversation_title"),
+        id=st.session_state.get("conversation_id"),
         user=st.session_state.get("user_name"),
         conversations=st.session_state["conversations"],
     )
@@ -43,9 +44,10 @@ def save_conversation():
 
 # Handle case where we navigated to load an existing conversation:
 if to_load := st.session_state.pop("load_conversation", None):
-    cr = conv_mgr.get_by_title(to_load)
+    cr = conv_mgr.get_by_id(to_load)
     st.session_state["conversations"] = cr.conversations
     st.session_state["conversation_title"] = cr.title
+    st.session_state["conversation_id"] = cr.id
     st.rerun()
 
 
@@ -53,22 +55,19 @@ if to_load := st.session_state.pop("load_conversation", None):
 def update_model_mode():
     if st.session_state.multi_mode:
         st.session_state["conversations"] = [Conversation(), Conversation()]
+        clear_conversation()
     else:
-        st.session_state["conversations"] = [Conversation()]
-    for conversation in st.session_state["conversations"]:
-        conversation.add_message(Message(role="assistant", content=DEFAULT_MESSAGE), render=False)
+        st.session_state["conversations"] = st.session_state["conversations"][:1]
 
 
 with st.sidebar:
-    enable_toggle = (
-        "conversations" in st.session_state and len(st.session_state.conversations[0].messages) > 2
-    )
     st.toggle(
         "Multi-model mode",
-        disabled=enable_toggle,
         key="multi_mode",
+        help="Enabling multi-model mode will reset the current conversation",
         on_change=update_model_mode,
     )
+
 
 # Store conversation state in streamlit session
 if "conversations" not in st.session_state:
@@ -234,11 +233,12 @@ def record_feedback():
 
 
 def clear_conversation():
-    for conversation in conversations:
+    for conversation in st.session_state.conversations:
         conversation.reset_messages()
         conversation.add_message(Message(role="assistant", content=DEFAULT_MESSAGE), render=False)
         conversation.feedback = None
     st.session_state.pop("conversation_title", None)
+    st.session_state.pop("conversation_id", None)
     st.toast("Started new chat", icon=":material/edit_square:")
 
 

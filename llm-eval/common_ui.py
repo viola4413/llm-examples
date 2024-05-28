@@ -1,6 +1,7 @@
 import json
 import pathlib
 import threading
+from copy import deepcopy
 from typing import Dict
 
 import streamlit as st
@@ -54,8 +55,6 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
     with st.sidebar:
         st.header("LLM Evaluation")
 
-        # st.write("")
-
         st.page_link("pages/about.py", label="About", icon=":material/info:")
         st.page_link("app.py", label="Chat", icon=":material/chat:")
 
@@ -98,8 +97,9 @@ def login():
     if not existing:
         new_user = st.text_input("New user:")
     admin_mode = st.checkbox("Admin mode", value=True)
-    if st.button("Submit"):
-        st.session_state.user_name = existing or new_user
+    user_name = existing or new_user
+    if st.button("Submit", disabled=not user_name):
+        st.session_state.user_name = user_name
         st.session_state.admin_mode = admin_mode
         st.rerun()
 
@@ -143,6 +143,13 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                     help=SYSTEM_PROMPT_HELP,
                 )
 
+                if model_config.model == "Mistral 7B":
+                    MISTRAL_NOTE = """
+                        **Note:** Mistral 7b only supports short responses, it may
+                        be truncated earlier than expected.
+                    """
+                    st.caption(MISTRAL_NOTE)
+
             with right1:
                 model_config.temperature = st.slider(
                     min_value=0.0,
@@ -175,12 +182,13 @@ def chat_response(
     conversation: Conversation,
     container=None,
 ):
-    conversation.add_message(
-        Message(role="assistant", content=""),
-        render=False,
-    )
     try:
-        stream_iter = generate_stream(conversation)
+        stream_iter = generate_stream(deepcopy(conversation))
+
+        conversation.add_message(
+            Message(role="assistant", content=""),
+            render=False,
+        )
 
         def generate_and_save():
             for t in stream_iter:
@@ -195,7 +203,7 @@ def chat_response(
         conversation.messages[-1].content = str(full_streamed_response).strip()
     except Exception as e:
         conversation.has_error = True
-        print("Error while generating chat response: " + str(e))
+        print(f"Error while generating chat response: {type(e).__name__}: {e}")
 
 
 def generate_title(

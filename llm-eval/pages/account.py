@@ -8,24 +8,30 @@ page_setup("My Account", visibility="user")
 
 user = st.session_state.get("user_name")
 conv_mgr: ConversationManager = st.session_state.conversation_manager
-conversations = conv_mgr.get_all_conversations(user=user)
-user_titles = conv_mgr.list_conversations_by_user(user)
 
 st.header(f"User: {user}")
 
+conversations = conv_mgr.get_all_conversations(user=user)
 metric_cols = st.columns(2)
 metric_cols[0].metric("Total conversations x models", len(conversations))
 metric_cols[1].metric("Total feedback", len([c for c in conversations if c.feedback]))
 
 st.subheader("Conversation history")
 
-options = [""] + user_titles
-selected = st.selectbox("Select a conversation:", options)
+id_title_mapping = {"": ""}
+for id, title in conv_mgr.list_conversations_by_user(user):
+    id_title_mapping[id] = title
+
+selected = st.selectbox(
+    label="Select a conversation:",
+    options=id_title_mapping.keys(),
+    format_func=lambda id: id_title_mapping[id],
+)
 if selected:
-    cr = conv_mgr.get_by_title(selected)
+    cr = conv_mgr.get_by_id(selected)
     st.subheader(cr.title)
     if st.button("Load this conversation"):
-        st.session_state.load_conversation = cr.title
+        st.session_state.load_conversation = cr.id
         st.switch_page("app.py")
     "#### Summary"
     cols = st.columns(len(cr.conversations))
@@ -52,8 +58,10 @@ st.subheader("Conversation export")
 @st.experimental_dialog("Export conversations")
 def export():
     records = []
-    for title in user_titles:
-        records.append(conv_mgr.get_by_title(title))
+    for id in id_title_mapping.keys():
+        if id == "":
+            continue
+        records.append(conv_mgr.get_by_id(id))
 
     output = "\n".join([r.to_json() for r in records])
     st.caption("Highlight and copy the output from here:")
