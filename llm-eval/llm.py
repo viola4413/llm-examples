@@ -1,7 +1,12 @@
 from typing import List
 import replicate
 from schema import Conversation, Message, ModelConfig
-from retrieve import retrieve
+from retrieve import PineconeRetriever
+
+import re
+
+import os
+os.environ["REPLICATE_API_TOKEN"] = "r8_..."
 
 from trulens_eval.tru_custom_app import instrument
 
@@ -11,7 +16,6 @@ FRIENDLY_MAPPING = {
     "Mistral 7B": "mistralai/mistral-7b-instruct-v0.2",
 }
 AVAILABLE_MODELS = [k for k in FRIENDLY_MAPPING.keys()]
-
 
 def encode_arctic(messages: List[Message]):
     prompt = []
@@ -53,7 +57,15 @@ ENCODING_MAPPING = {
     "mistralai/mistral-7b-instruct-v0.2": encode_generic,
 }
 class StreamGenerator:
-    @instrument
+    retriever = PineconeRetriever()
+
+    def get_last_user_message(self, prompt_str):
+    # Regex to find the last 'user' message
+        match = re.findall(r'<\|im_start\|>user\n(.*?)(?=<\|im_end\|>)', prompt_str, re.DOTALL)
+        if match:
+            return match[-1].strip()
+        return ""
+    
     def prepare_prompt(self, conversation: Conversation):
         messages = conversation.messages
         model_config = conversation.model_config
@@ -63,11 +75,14 @@ class StreamGenerator:
             system_msg = Message(role="system", content=model_config.system_prompt)
             messages = [system_msg] + messages
 
-        return ENCODING_MAPPING[full_model_name](messages)
+        prompt_str = ENCODING_MAPPING[full_model_name](messages)
 
+        # Extract the last user message from the prompt string
+        last_user_message = self.get_last_user_message(prompt_str)
+
+        return last_user_message, prompt_str
     @instrument
-    def generate_stream(self, conversation: Conversation):
-        prompt_str = self.prepare_prompt(conversation)
+    def generate_stream(self, last_user_message: str, prompt_str: str, conversation: Conversation):
         model_config = conversation.model_config
         full_model_name = FRIENDLY_MAPPING[model_config.model]
 
@@ -82,16 +97,14 @@ class StreamGenerator:
             yield str(t)
 
     @instrument
-    def retrieve_context(self, conversation: Conversation):
-        prompt_str = self.prepare_prompt(conversation)
-        nodes = retrieve(query=prompt_str)
+    def retrieve_context(self, last_user_message: str, prompt_str: str, conversation: Conversation):
+        nodes = self.retriever.retrieve(query=last_user_message)
         context_message = "\n\n".join([node.get_content() for node in nodes])
         return context_message, nodes
 
     @instrument
-    def retrieve_and_generate_stream(self, conversation: Conversation):
-        prompt_str = self.prepare_prompt(conversation)
-        context_message, nodes = self.retrieve_context(conversation)  # Fixed by passing the conversation object instead of prompt_str
+    def retrieve_and_generate_stream(self, last_user_message: str, prompt_str: str, conversation: Conversation):
+        context_message, nodes = self.retrieve_context(last_user_message = last_user_message, prompt_str = prompt_str, conversation = conversation)  # Fixed by passing the conversation object instead of prompt_str
         model_config = conversation.model_config
         full_model_name = FRIENDLY_MAPPING[model_config.model]
 
