@@ -8,12 +8,19 @@ from streamlit.runtime.scriptrunner import add_script_run_ctx
 from streamlit.runtime.scriptrunner.script_run_context import get_script_run_ctx
 
 from conversation_manager import ConversationManager
-from llm import AVAILABLE_MODELS
+from llm import StreamGenerator, AVAILABLE_MODELS
 from schema import (
     Conversation,
     Message,
     ModelConfig,
 )
+
+from trulens_eval import Tru
+
+from trulens_eval import TruCustomApp
+
+generator = StreamGenerator()
+
 
 def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="public"):
     if st.get_option("client.showSidebarNavigation") and "already_ran" not in st.session_state:
@@ -110,12 +117,28 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
     MAX_NEW_TOKENS_KEY = f"max_new_tokens_{key}"
     SYSTEM_PROMPT_KEY = f"system_prompt_{key}"
 
+    metadata = {
+        "model": st.session_state.get(MODEL_KEY, model_config.model),
+        "temperature": st.session_state.get(TEMPERATURE_KEY, model_config.temperature),
+        "top_p": st.session_state.get(TOP_P_KEY, model_config.top_p),
+        "max_new_tokens": st.session_state.get(MAX_NEW_TOKENS_KEY, model_config.max_new_tokens),
+    }
+
     if MODEL_KEY not in st.session_state:
         st.session_state[MODEL_KEY] = model_config.model
         st.session_state[TEMPERATURE_KEY] = model_config.temperature
         st.session_state[TOP_P_KEY] = model_config.top_p
         st.session_state[MAX_NEW_TOKENS_KEY] = model_config.max_new_tokens
-        st.session_state[SYSTEM_PROMPT_KEY] = model_config.system_prompt
+        metadata = {
+                        "model": st.session_state[MODEL_KEY],
+                        "temperature": st.session_state[TEMPERATURE_KEY],
+                        "top_p": st.session_state[TOP_P_KEY],
+                        "max_new_tokens": st.session_state[MAX_NEW_TOKENS_KEY],
+                    }
+        # Initialize TruCustomApp recorder with an iterated app id
+        app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
+        st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata)
+        st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1) + 1
 
     with container:
         with st.popover(
@@ -124,57 +147,96 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
             left1, right1 = st.columns(2)
             left2, right2 = st.columns(2)
             with left1:
-                model_config.model = st.selectbox(
+                new_model = st.selectbox(
                     label="Select model:",
                     options=AVAILABLE_MODELS,
                     key=MODEL_KEY,
                 )
+                if new_model != st.session_state[MODEL_KEY]:
+                    st.session_state[MODEL_KEY] = new_model
+                    # Update TruCustomApp recorder with a new app id upon model change
+                    app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
+                    st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata)
+                    st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1) + 1
 
             with left2:
                 SYSTEM_PROMPT_HELP = """
                     Add a system prompt which is added to the beginning
                     of each conversation.
                 """
-                model_config.system_prompt = st.text_area(
+                new_system_prompt = st.text_area(
                     label="System Prompt:",
                     height=2,
                     key=SYSTEM_PROMPT_KEY,
                     help=SYSTEM_PROMPT_HELP,
                 )
+                if new_system_prompt != st.session_state[SYSTEM_PROMPT_KEY]:
+                    st.session_state[SYSTEM_PROMPT_KEY] = new_system_prompt
+                    # Update TruCustomApp recorder with a new app id upon system prompt change
+                    app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
+                    st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=json.dumps(metadata))
+                    st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1) + 1
 
             with right1:
-                model_config.temperature = st.slider(
+                new_temperature = st.slider(
                     min_value=0.0,
                     max_value=1.0,
                     step=0.1,
                     label="Temperature:",
                     key=TEMPERATURE_KEY,
                 )
+                if new_temperature != st.session_state[TEMPERATURE_KEY]:
+                    st.session_state[TEMPERATURE_KEY] = new_temperature
+                    # Update TruCustomApp recorder with a new app id upon temperature change
+                    app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
+                    st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata)
+                    st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1) + 1
 
             with right2:
-                model_config.top_p = st.slider(
+                new_top_p = st.slider(
                     min_value=0.0,
                     max_value=1.0,
                     step=0.1,
                     label="Top P:",
                     key=TOP_P_KEY,
                 )
+                if new_top_p != st.session_state[TOP_P_KEY]:
+                    st.session_state[TOP_P_KEY] = new_top_p
+                    # Update TruCustomApp recorder with a new app id upon top_p change
+                    app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
+                    st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata)
+                    st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1) + 1
 
-                model_config.max_new_tokens = st.slider(
+                new_max_new_tokens = st.slider(
                     min_value=100,
                     max_value=1500,
                     step=100,
                     label="Max new tokens:",
                     key=MAX_NEW_TOKENS_KEY,
                 )
+                if new_max_new_tokens != st.session_state[MAX_NEW_TOKENS_KEY]:
+                    st.session_state[MAX_NEW_TOKENS_KEY] = new_max_new_tokens
+                    # Update TruCustomApp recorder with a new app id upon max new tokens change
+                    app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
+                    st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata)
+                    st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1) + 1
                 
-                st.session_state['use_rag'] = st.toggle(
+                new_use_rag = st.toggle(
                     label="Access to Streamlit Docs",
                     value=True,
                     key='use_rag_toggle'
                 )
+                st.session_state['use_rag'] = new_use_rag
+                if new_use_rag != st.session_state.use_rag:
+                    st.session_state.use_rag = new_use_rag
+                    # Update TruCustomApp recorder with a new app id upon max new tokens change
+                    app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
+                    st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata)
+                    st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1) + 1
+                    
+                app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
+                st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata)
     return model_config
-
 
 def chat_response(
     conversation: Conversation,
@@ -187,11 +249,11 @@ def chat_response(
     try:
         if st.session_state['use_rag']:
             stream_iter = generator.retrieve_and_generate_stream(conversation)
-            with trulens_recorder_for_rag:
+            with st.session_state['trulens_recorder']:
                 generator.retrieve_and_generate_stream(conversation)
         else:
             stream_iter = generator.generate_stream(conversation)
-            with trulens_recorder:
+            with st.session_state['trulens_recorder']:
                 generator.generate_stream(conversation)
 
         def generate_and_save():

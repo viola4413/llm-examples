@@ -24,8 +24,6 @@ from trulens_eval.ux.page_config import set_page_config
 
 from common_ui import page_setup
 
-page_setup("Automated Evaluation", visibility="admin")
-
 if __name__ == "__main__":
     # If not imported, gets args from command line and creates Tru singleton
     init_from_args()
@@ -42,9 +40,9 @@ def leaderboard():
     lms = tru.db
 
     # Set the title and subtitle of the app
-    st.title("App Leaderboard")
+    st.title("Automated Evaluation Leaderboard")
     st.write(
-        "Average feedback values displayed in the range from 0 (worst) to 1 (best)."
+        "Powered by TruLens 🦑."
     )
     df, feedback_col_names = lms.get_records_and_feedback([])
     feedback_defs = lms.get_feedback_defs()
@@ -142,14 +140,6 @@ def leaderboard():
                         ) else "inverse"
                     ),
                 )
-
-        with col99:
-            if st.button("Select App", key=f"app-selector-{app}"):
-                st.session_state.app = app
-                switch_page("Evaluations")
-
-        # with st.expander("Model metadata"):
-        #    st.markdown(draw_metadata(metadata))
 
         st.markdown("""---""")
 
