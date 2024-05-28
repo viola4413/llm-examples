@@ -55,22 +55,19 @@ if to_load := st.session_state.pop("load_conversation", None):
 def update_model_mode():
     if st.session_state.multi_mode:
         st.session_state["conversations"] = [Conversation(), Conversation()]
+        clear_conversation()
     else:
-        st.session_state["conversations"] = [Conversation()]
-    for conversation in st.session_state["conversations"]:
-        conversation.add_message(Message(role="assistant", content=DEFAULT_MESSAGE), render=False)
+        st.session_state["conversations"] = st.session_state["conversations"][:1]
 
 
 with st.sidebar:
-    enable_toggle = (
-        "conversations" in st.session_state and len(st.session_state.conversations[0].messages) > 2
-    )
     st.toggle(
         "Multi-model mode",
-        disabled=enable_toggle,
         key="multi_mode",
+        help="Enabling multi-model mode will reset the current conversation",
         on_change=update_model_mode,
     )
+
 
 # Store conversation state in streamlit session
 if "conversations" not in st.session_state:
@@ -236,7 +233,7 @@ def record_feedback():
 
 
 def clear_conversation():
-    for conversation in conversations:
+    for conversation in st.session_state.conversations:
         conversation.reset_messages()
         conversation.add_message(Message(role="assistant", content=DEFAULT_MESSAGE), render=False)
         conversation.feedback = None
