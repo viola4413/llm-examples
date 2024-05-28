@@ -3,6 +3,8 @@ import replicate
 from schema import Conversation, Message, ModelConfig
 from retrieve import retrieve
 
+from trulens_eval.tru_custom_app import instrument
+
 FRIENDLY_MAPPING = {
     "Snowflake Arctic": "snowflake/snowflake-arctic-instruct",
     "LLaMa 3 8B": "meta/meta-llama-3-8b",
@@ -50,66 +52,62 @@ ENCODING_MAPPING = {
     "meta/meta-llama-3-8b": encode_llama3,
     "mistralai/mistral-7b-instruct-v0.2": encode_generic,
 }
+class StreamGenerator:
+    @instrument
+    def prepare_prompt(self, conversation: Conversation):
+        messages = conversation.messages
+        model_config = conversation.model_config
+        full_model_name = FRIENDLY_MAPPING[model_config.model]
 
+        if model_config.system_prompt:
+            system_msg = Message(role="system", content=model_config.system_prompt)
+            messages = [system_msg] + messages
 
-def generate_stream(
-    conversation: Conversation,
-):
-    messages = conversation.messages
-    model_config: ModelConfig = conversation.model_config
-    full_model_name = FRIENDLY_MAPPING[model_config.model]
+        return ENCODING_MAPPING[full_model_name](messages)
 
-    if model_config.system_prompt:
-        system_msg = Message(role="system", content=model_config.system_prompt)
-        messages = [system_msg]
-        messages.extend(conversation.messages)
+    @instrument
+    def generate_stream(self, conversation: Conversation):
+        prompt_str = self.prepare_prompt(conversation)
+        model_config = conversation.model_config
+        full_model_name = FRIENDLY_MAPPING[model_config.model]
 
-    prompt_str = ENCODING_MAPPING[full_model_name](messages)
+        model_input = {
+            "prompt": prompt_str,
+            "prompt_template": r"{prompt}",
+            "temperature": model_config.temperature,
+            "top_p": model_config.top_p,
+        }
+        stream = replicate.stream(full_model_name, input=model_input)
+        for t in stream:
+            yield str(t)
 
-    model_input = {
-        "prompt": prompt_str,
-        "prompt_template": r"{prompt}",
-        "temperature": model_config.temperature,
-        "top_p": model_config.top_p,
-    }
-    stream = replicate.stream(full_model_name, input=model_input)
+    @instrument
+    def retrieve_context(self, conversation: Conversation):
+        prompt_str = self.prepare_prompt(conversation)
+        nodes = retrieve(query=prompt_str)
+        context_message = "\n\n".join([node.get_content() for node in nodes])
+        return context_message, nodes
 
-    for t in stream:
-        yield str(t)
+    @instrument
+    def retrieve_and_generate_stream(self, conversation: Conversation):
+        prompt_str = self.prepare_prompt(conversation)
+        context_message, nodes = self.retrieve_context(conversation)  # Fixed by passing the conversation object instead of prompt_str
+        model_config = conversation.model_config
+        full_model_name = FRIENDLY_MAPPING[model_config.model]
 
-def retrieve_and_generate_stream(
-    conversation: Conversation,
-):
-    messages = conversation.messages
-    model_config: ModelConfig = conversation.model_config
-    full_model_name = FRIENDLY_MAPPING[model_config.model]
+        full_prompt = (
+            "We have provided context information below. \n"
+            "---------------------\n"
+            f"{context_message}"
+            "\n---------------------\n"
+            f"Given this information, please answer the question: {prompt_str}"
+        )
 
-    if model_config.system_prompt:
-        system_msg = Message(role="system", content=model_config.system_prompt)
-        messages = [system_msg]
-        messages.extend(conversation.messages)
-
-    prompt_str = ENCODING_MAPPING[full_model_name](messages)
-
-    nodes = retrieve(query = prompt_str)
-    [node.get_content() for node in nodes]
-
-    context_message = "\n\n".join([node.get_content() for node in nodes])
-
-    full_prompt = (
-    "We have provided context information below. \n"
-    "---------------------\n"
-    f"{context_message}"
-    "\n---------------------\n"
-    f"Given this information, please answer the question: {prompt_str}"
-    )
-
-    model_input = {
-        "prompt": full_prompt,
-        "temperature": model_config.temperature,
-        "top_p": model_config.top_p,
-    }
-    stream = replicate.stream(full_model_name, input=model_input)
-
-    for t in stream:
-        yield str(t)
+        model_input = {
+            "prompt": full_prompt,
+            "temperature": model_config.temperature,
+            "top_p": model_config.top_p,
+        }
+        stream = replicate.stream(full_model_name, input=model_input)
+        for t in stream:
+            yield str(t)

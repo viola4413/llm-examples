@@ -8,13 +8,12 @@ from streamlit.runtime.scriptrunner import add_script_run_ctx
 from streamlit.runtime.scriptrunner.script_run_context import get_script_run_ctx
 
 from conversation_manager import ConversationManager
-from llm import generate_stream, retrieve_and_generate_stream, AVAILABLE_MODELS
+from llm import AVAILABLE_MODELS
 from schema import (
     Conversation,
     Message,
     ModelConfig,
 )
-
 
 def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="public"):
     if st.get_option("client.showSidebarNavigation") and "already_ran" not in st.session_state:
@@ -56,7 +55,6 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
         st.header("LLM Evaluation")
 
         # st.write("")
-
         st.page_link("pages/about.py", label="About", icon=":material/info:")
         st.page_link("app.py", label="Chat", icon=":material/chat:")
 
@@ -66,7 +64,7 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
         if st.session_state.get("admin_mode"):
             st.subheader("Admin view")
             st.page_link("pages/analysis.py", label="Conversation Analysis", icon=":material/analytics:")
-            st.page_link("pages/auto_eval.py", label="Automated Evaluation", icon=":material/quiz:")
+            st.page_link("pages/trulens_leaderboard.py", label="Automated Evaluation", icon=":material/quiz:")
             st.page_link("pages/users.py", label="User Management", icon=":material/group:")
 
         st.write("")
@@ -188,9 +186,13 @@ def chat_response(
     )
     try:
         if st.session_state['use_rag']:
-            stream_iter = retrieve_and_generate_stream(conversation)
+            stream_iter = generator.retrieve_and_generate_stream(conversation)
+            with trulens_recorder_for_rag:
+                generator.retrieve_and_generate_stream(conversation)
         else:
-            stream_iter = generate_stream(conversation)
+            stream_iter = generator.generate_stream(conversation)
+            with trulens_recorder:
+                generator.generate_stream(conversation)
 
         def generate_and_save():
             for t in stream_iter:
@@ -241,7 +243,7 @@ def generate_title(
     conversation.add_message(Message(role="user", content=input_msg), render=False)
     title_json = ""
     try:
-        stream_iter = generate_stream(conversation)
+        stream_iter = generator.generate_stream(conversation)
         for t in stream_iter:
             title_json += str(t)
         result = json.loads(title_json)
