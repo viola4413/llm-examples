@@ -1,7 +1,7 @@
 from typing import List
 import replicate
 from schema import Conversation, Message, ModelConfig
-
+from retrieve import retrieve
 
 FRIENDLY_MAPPING = {
     "Snowflake Arctic": "snowflake/snowflake-arctic-instruct",
@@ -69,6 +69,43 @@ def generate_stream(
     model_input = {
         "prompt": prompt_str,
         "prompt_template": r"{prompt}",
+        "temperature": model_config.temperature,
+        "top_p": model_config.top_p,
+    }
+    stream = replicate.stream(full_model_name, input=model_input)
+
+    for t in stream:
+        yield str(t)
+
+def retrieve_and_generate_stream(
+    conversation: Conversation,
+):
+    messages = conversation.messages
+    model_config: ModelConfig = conversation.model_config
+    full_model_name = FRIENDLY_MAPPING[model_config.model]
+
+    if model_config.system_prompt:
+        system_msg = Message(role="system", content=model_config.system_prompt)
+        messages = [system_msg]
+        messages.extend(conversation.messages)
+
+    prompt_str = ENCODING_MAPPING[full_model_name](messages)
+
+    nodes = retrieve(query = prompt_str)
+    [node.get_content() for node in nodes]
+
+    context_message = "\n\n".join([node.get_content() for node in nodes])
+
+    full_prompt = (
+    "We have provided context information below. \n"
+    "---------------------\n"
+    f"{context_message}"
+    "\n---------------------\n"
+    f"Given this information, please answer the question: {prompt_str}"
+    )
+
+    model_input = {
+        "prompt": full_prompt,
         "temperature": model_config.temperature,
         "top_p": model_config.top_p,
     }

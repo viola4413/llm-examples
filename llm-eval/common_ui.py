@@ -8,7 +8,7 @@ from streamlit.runtime.scriptrunner import add_script_run_ctx
 from streamlit.runtime.scriptrunner.script_run_context import get_script_run_ctx
 
 from conversation_manager import ConversationManager
-from llm import generate_stream, AVAILABLE_MODELS
+from llm import generate_stream, retrieve_and_generate_stream, AVAILABLE_MODELS
 from schema import (
     Conversation,
     Message,
@@ -20,6 +20,7 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
     if st.get_option("client.showSidebarNavigation") and "already_ran" not in st.session_state:
         st.set_option("client.showSidebarNavigation", False)
         st.session_state.already_ran = True
+        st.session_state.use_rag = True
         st.rerun()
 
     # Handle access control
@@ -168,6 +169,12 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                     label="Max new tokens:",
                     key=MAX_NEW_TOKENS_KEY,
                 )
+                
+                st.session_state['use_rag'] = st.toggle(
+                    label="Access to Streamlit Docs",
+                    value=True,
+                    key='use_rag_toggle'
+                )
     return model_config
 
 
@@ -180,7 +187,10 @@ def chat_response(
         render=False,
     )
     try:
-        stream_iter = generate_stream(conversation)
+        if st.session_state['use_rag']:
+            stream_iter = retrieve_and_generate_stream(conversation)
+        else:
+            stream_iter = generate_stream(conversation)
 
         def generate_and_save():
             for t in stream_iter:
