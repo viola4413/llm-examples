@@ -1,6 +1,7 @@
 import json
 from copy import deepcopy
 from typing import List, Literal
+import uuid
 from pydantic import BaseModel
 import streamlit as st
 
@@ -71,6 +72,7 @@ class ConversationRecord:
     conversations: List[Conversation] = []
     user: str = ""
     title: str = ""
+    id: str = ""
 
     def __init__(
         self,
@@ -78,18 +80,24 @@ class ConversationRecord:
         title: str,
         user: str,
         conversations: List[Conversation] = [],
+        id: str = None,
     ):
         self.user = user
         self.title = title
         self.conversations = []
         for c in conversations:
             self.conversations.append(deepcopy(c))
+        if id:
+            self.id = id
+        else:
+            self.id = str(uuid.uuid4())
 
     def to_json(self):
         cr = {
             "conversations": [],
             "user": self.user,
             "title": self.title,
+            "id": self.id,
         }
         for conv in self.conversations:
             c = {
@@ -107,6 +115,7 @@ class ConversationRecord:
         cr = ConversationRecord(
             title=d["title"],
             user=d["user"],
+            id=d["id"],
         )
         for c in d["conversations"]:
             conversation = Conversation()

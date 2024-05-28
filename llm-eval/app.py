@@ -35,6 +35,7 @@ conv_mgr: ConversationManager = st.session_state.conversation_manager
 def save_conversation():
     cr = ConversationRecord(
         title=st.session_state.get("conversation_title"),
+        id=st.session_state.get("conversation_id"),
         user=st.session_state.get("user_name"),
         conversations=st.session_state["conversations"],
     )
@@ -43,9 +44,10 @@ def save_conversation():
 
 # Handle case where we navigated to load an existing conversation:
 if to_load := st.session_state.pop("load_conversation", None):
-    cr = conv_mgr.get_by_title(to_load)
+    cr = conv_mgr.get_by_id(to_load)
     st.session_state["conversations"] = cr.conversations
     st.session_state["conversation_title"] = cr.title
+    st.session_state["conversation_id"] = cr.id
     st.rerun()
 
 
@@ -239,6 +241,7 @@ def clear_conversation():
         conversation.add_message(Message(role="assistant", content=DEFAULT_MESSAGE), render=False)
         conversation.feedback = None
     st.session_state.pop("conversation_title", None)
+    st.session_state.pop("conversation_id", None)
     st.toast("Started new chat", icon=":material/edit_square:")
 
 
