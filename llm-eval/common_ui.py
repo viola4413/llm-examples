@@ -16,26 +16,26 @@ from schema import (
 )
 
 from trulens_eval import Tru
-Tru().reset_database()
+#Tru().reset_database()
 
 import os
 os.environ['HUGGINGFACE_API_KEY'] = "hf_..."
+os.environ["REPLICATE_API_TOKEN"] = "r8_..."
 
 from trulens_eval import Feedback, Select
 from trulens_eval.feedback.provider.hugs import Huggingface
 huggingface_provider = Huggingface()
 
-langmatch = (
-    Feedback(huggingface_provider.language_match).on_input().on(
-Select.Record.app.retrieve_and_generate_stream.rets)
-)
+from trulens_eval import Feedback, Select
+from trulens_eval import LiteLLM
 
-feedbacks = [langmatch]
+import numpy as np
 
 from trulens_eval import TruCustomApp
 
 generator = StreamGenerator()
 
+st.session_state.use_rag = True
 
 def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="public"):
     if st.get_option("client.showSidebarNavigation") and "already_ran" not in st.session_state:
@@ -151,9 +151,27 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                         "max_new_tokens": st.session_state[MAX_NEW_TOKENS_KEY],
                     }
         # Initialize TruCustomApp recorder with an iterated app id
+        st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1)
         app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
+        # Initialize LiteLLM-based feedback function collection class:
+        provider = LiteLLM(model_engine="replicate/snowflake/snowflake-arctic-instruct")
+
+        f_langmatch = (
+            Feedback(huggingface_provider.language_match).on_input().on(
+        Select.Record.app.retrieve_and_generate_stream.rets)
+        )
+
+        f_context_relevance = (
+            Feedback(provider.context_relevance_with_cot_reasons, name = "Context Relevance")
+            .on_input()
+            .on(Select.RecordCalls.retrieve_context.rets[0])
+            .aggregate(np.mean) # choose a different aggregation method if you wish
+        )
+
+        f_criminality = Feedback(provider.criminality).on(Select.RecordInput)
+
+        feedbacks = [f_langmatch, f_context_relevance, f_criminality]
         st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
-        st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1) + 1
 
     with container:
         with st.popover(
@@ -170,9 +188,9 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                 if new_model != st.session_state[MODEL_KEY]:
                     st.session_state[MODEL_KEY] = new_model
                     # Update TruCustomApp recorder with a new app id upon model change
-                    app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
+                    st.session_state['app_id_iterator'] += 1
+                    app_id = f"App {st.session_state['app_id_iterator']}"
                     st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
-                    st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1) + 1
 
             with left2:
                 SYSTEM_PROMPT_HELP = """
@@ -188,9 +206,9 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                 if new_system_prompt != st.session_state[SYSTEM_PROMPT_KEY]:
                     st.session_state[SYSTEM_PROMPT_KEY] = new_system_prompt
                     # Update TruCustomApp recorder with a new app id upon system prompt change
-                    app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
+                    st.session_state['app_id_iterator'] += 1
+                    app_id = f"App {st.session_state['app_id_iterator']}"
                     st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
-                    st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1) + 1
 
             with right1:
                 new_temperature = st.slider(
@@ -203,9 +221,9 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                 if new_temperature != st.session_state[TEMPERATURE_KEY]:
                     st.session_state[TEMPERATURE_KEY] = new_temperature
                     # Update TruCustomApp recorder with a new app id upon temperature change
-                    app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
+                    st.session_state['app_id_iterator'] += 1
+                    app_id = f"App {st.session_state['app_id_iterator']}"
                     st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
-                    st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1) + 1
 
             with right2:
                 new_top_p = st.slider(
@@ -218,9 +236,9 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                 if new_top_p != st.session_state[TOP_P_KEY]:
                     st.session_state[TOP_P_KEY] = new_top_p
                     # Update TruCustomApp recorder with a new app id upon top_p change
-                    app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
+                    st.session_state['app_id_iterator'] += 1
+                    app_id = f"App {st.session_state['app_id_iterator']}"
                     st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
-                    st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1) + 1
 
                 new_max_new_tokens = st.slider(
                     min_value=100,
@@ -232,25 +250,43 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                 if new_max_new_tokens != st.session_state[MAX_NEW_TOKENS_KEY]:
                     st.session_state[MAX_NEW_TOKENS_KEY] = new_max_new_tokens
                     # Update TruCustomApp recorder with a new app id upon max new tokens change
-                    app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
+                    st.session_state['app_id_iterator'] += 1
+                    app_id = f"App {st.session_state['app_id_iterator']}"
                     st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
-                    st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1) + 1
                 
                 new_use_rag = st.toggle(
                     label="Access to Streamlit Docs",
                     value=True,
                     key='use_rag_toggle'
                 )
-                st.session_state['use_rag'] = new_use_rag
                 if new_use_rag != st.session_state.use_rag:
                     st.session_state.use_rag = new_use_rag
                     # Update TruCustomApp recorder with a new app id upon max new tokens change
-                    app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
+                    st.session_state['app_id_iterator'] += 1
+                    app_id = f"App {st.session_state['app_id_iterator']}"
                     st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
-                    st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1) + 1
-                    
-                app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
-                st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata)
+
+                st.session_state['app_id_iterator'] += 1 
+                app_id = f"App {st.session_state['app_id_iterator']}"
+                # Initialize LiteLLM-based feedback function collection class:
+                provider = LiteLLM(model_engine="replicate/snowflake/snowflake-arctic-instruct")
+
+                f_langmatch = (
+                    Feedback(huggingface_provider.language_match).on_input().on(
+                Select.Record.app.retrieve_and_generate_stream.rets)
+                )
+
+                f_context_relevance = (
+                    Feedback(provider.context_relevance_with_cot_reasons, name = "Context Relevance")
+                    .on_input()
+                    .on(Select.RecordCalls.retrieve_context.rets[0])
+                    .aggregate(np.mean) # choose a different aggregation method if you wish
+                )
+
+                f_criminality = Feedback(provider.criminality, name = "Criminality", higher_is_better=False).on(Select.RecordInput)
+
+                feedbacks = [f_langmatch, f_context_relevance, f_criminality]
+                st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
     return model_config
 
 def chat_response(
@@ -343,3 +379,4 @@ def st_thread(target, args) -> threading.Thread:
     thread = threading.Thread(target=target, args=args)
     add_script_run_ctx(thread, get_script_run_ctx())
     return thread
+
