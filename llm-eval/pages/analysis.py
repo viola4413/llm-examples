@@ -10,11 +10,12 @@ page_setup("Conversation Analysis", visibility="admin")
 conv_mgr: ConversationManager = st.session_state.conversation_manager
 flattened = []
 
-for record in conv_mgr._conversations:
+for record in conv_mgr._conversations.values():
     for conv in record.conversations:
         c = dict(
             title=record.title,
             user=record.user,
+            id=record.id,
         )
         c.update(dict(conv.model_config))
         if conv.feedback:
@@ -53,4 +54,5 @@ df_selection = st.dataframe(df, on_select="rerun", selection_mode="single-row")
 st.caption("Select a row for expanded details.")
 
 if df_selection.selection.rows:
-    st.write(flattened[df_selection.selection.rows[0]])
+    selected_idx = df.index[df_selection.selection.rows[0]]
+    st.write(flattened[selected_idx])
