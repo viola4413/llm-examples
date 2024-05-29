@@ -16,18 +16,14 @@ from schema import (
 )
 
 from trulens_eval import Tru
-#Tru().reset_database()
 
+# replicate key for running feedback
 import os
-os.environ['HUGGINGFACE_API_KEY'] = "hf_..."
 os.environ["REPLICATE_API_TOKEN"] = "r8_..."
 
 from trulens_eval import Feedback, Select
 from trulens_eval.feedback.provider.hugs import Huggingface
-huggingface_provider = Huggingface()
-
-from trulens_eval import Feedback, Select
-from trulens_eval import LiteLLM
+from trulens_eval.feedback.provider.litellm import LiteLLM
 
 import numpy as np
 
@@ -86,7 +82,6 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
         if st.session_state.get("admin_mode"):
             st.subheader("Admin view")
             st.page_link("pages/analysis.py", label="Conversation Analysis", icon=":material/analytics:")
-            st.page_link("pages/trulens_leaderboard.py", label="Automated Evaluation", icon=":material/quiz:")
             st.page_link("pages/users.py", label="User Management", icon=":material/group:")
 
         st.write("")
@@ -132,12 +127,26 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
     MAX_NEW_TOKENS_KEY = f"max_new_tokens_{key}"
     SYSTEM_PROMPT_KEY = f"system_prompt_{key}"
 
+    # initialize app metadata for tracking
     metadata = {
         "model": st.session_state.get(MODEL_KEY, model_config.model),
         "temperature": st.session_state.get(TEMPERATURE_KEY, model_config.temperature),
         "top_p": st.session_state.get(TOP_P_KEY, model_config.top_p),
         "max_new_tokens": st.session_state.get(MAX_NEW_TOKENS_KEY, model_config.max_new_tokens),
+        "use_rag": True,
     }
+
+    # set feedback functions for trulens to use
+    provider = LiteLLM(model_engine="replicate/snowflake/snowflake-arctic-instruct")
+    f_context_relevance = (
+            Feedback(provider.context_relevance_with_cot_reasons, name = "Context Relevance")
+            .on_input()
+            .on(Select.RecordCalls.retrieve_context.rets[1][:].node.text)
+            .aggregate(np.mean) # choose a different aggregation method if you wish
+        )
+    f_criminality_input = Feedback(provider.criminality, name = "Criminality input", higher_is_better=False).on(Select.RecordInput)
+    f_criminality_output = Feedback(provider.criminality, name = "Criminality output", higher_is_better=False).on(Select.Record.app.retrieve_and_generate_stream.rets[:].collect())
+    feedbacks = [f_context_relevance, f_criminality_input, f_criminality_output]
 
     if MODEL_KEY not in st.session_state:
         st.session_state[MODEL_KEY] = model_config.model
@@ -154,23 +163,6 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
         st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1)
         app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
         # Initialize LiteLLM-based feedback function collection class:
-        provider = LiteLLM(model_engine="replicate/snowflake/snowflake-arctic-instruct")
-
-        f_langmatch = (
-            Feedback(huggingface_provider.language_match).on_input().on(
-        Select.Record.app.retrieve_and_generate_stream.rets)
-        )
-
-        f_context_relevance = (
-            Feedback(provider.context_relevance_with_cot_reasons, name = "Context Relevance")
-            .on_input()
-            .on(Select.RecordCalls.retrieve_context.rets[0])
-            .aggregate(np.mean) # choose a different aggregation method if you wish
-        )
-
-        f_criminality = Feedback(provider.criminality).on(Select.RecordInput)
-
-        feedbacks = [f_langmatch, f_context_relevance, f_criminality]
         st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
 
     with container:
@@ -268,24 +260,6 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
 
                 st.session_state['app_id_iterator'] += 1 
                 app_id = f"App {st.session_state['app_id_iterator']}"
-                # Initialize LiteLLM-based feedback function collection class:
-                provider = LiteLLM(model_engine="replicate/snowflake/snowflake-arctic-instruct")
-
-                f_langmatch = (
-                    Feedback(huggingface_provider.language_match).on_input().on(
-                Select.Record.app.retrieve_and_generate_stream.rets)
-                )
-
-                f_context_relevance = (
-                    Feedback(provider.context_relevance_with_cot_reasons, name = "Context Relevance")
-                    .on_input()
-                    .on(Select.RecordCalls.retrieve_context.rets[0])
-                    .aggregate(np.mean) # choose a different aggregation method if you wish
-                )
-
-                f_criminality = Feedback(provider.criminality, name = "Criminality", higher_is_better=False).on(Select.RecordInput)
-
-                feedbacks = [f_langmatch, f_context_relevance, f_criminality]
                 st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
     return model_config
 
@@ -305,8 +279,8 @@ def chat_response(
                 user_message, prompt = generator.prepare_prompt(conversation)
                 generator.retrieve_and_generate_stream(user_message, prompt, conversation)
         else:
-            user_message, prompt = generator.prepare_prompt(conversation)
-            stream_iter = generator.generate_stream(user_message, prompt, conversation) # hack - not displaying in dashboard without this
+            #user_message, prompt = generator.prepare_prompt(conversation)
+            #stream_iter = generator.generate_stream(user_message, prompt, conversation) # hack - not displaying in dashboard without this
             with st.session_state['trulens_recorder']:
                 user_message, prompt = generator.prepare_prompt(conversation)
                 generator.generate_stream(user_message, prompt, conversation)

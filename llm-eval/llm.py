@@ -5,6 +5,7 @@ from retrieve import PineconeRetriever
 
 import re
 
+# replicate key for running model
 import os
 os.environ["REPLICATE_API_TOKEN"] = "r8_..."
 
