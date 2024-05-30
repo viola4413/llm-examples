@@ -6,10 +6,10 @@ from retrieve import PineconeRetriever
 import re
 
 # replicate key for running model
-import os
-os.environ["REPLICATE_API_TOKEN"] = "r8_..."
-
+from dotenv import load_dotenv
 from trulens_eval.tru_custom_app import instrument
+
+load_dotenv()
 
 FRIENDLY_MAPPING = {
     "Snowflake Arctic": "snowflake/snowflake-arctic-instruct",
@@ -82,6 +82,7 @@ class StreamGenerator:
         last_user_message = self.get_last_user_message(prompt_str)
 
         return last_user_message, prompt_str
+    
     @instrument
     def generate_stream(self, last_user_message: str, prompt_str: str, conversation: Conversation):
         model_config = conversation.model_config

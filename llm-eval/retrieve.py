@@ -1,11 +1,15 @@
+import os
+from dotenv import load_dotenv
 from pinecone import Pinecone, ServerlessSpec
 from llama_index.vector_stores.pinecone import PineconeVectorStore
 from llama_index.core import VectorStoreIndex
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
+load_dotenv()
+
 class PineconeRetriever:
     def __init__(self):
-        self.pinecone_api_key = "..."
+        self.pinecone_api_key = os.environ['PINECONE_API_KEY']
         self.pc = Pinecone(api_key=self.pinecone_api_key)
         self.embed_model = HuggingFaceEmbedding("Snowflake/snowflake-arctic-embed-m")
         self.index_name = "streamlit-docs"
