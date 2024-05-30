@@ -17,9 +17,7 @@ from schema import (
 
 # feedback functions
 from feedback import feedbacks
-
 from trulens_eval import Tru
-
 from trulens_eval import TruCustomApp
 
 generator = StreamGenerator()

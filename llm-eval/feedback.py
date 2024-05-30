@@ -1,12 +1,12 @@
 from trulens_eval import Feedback, Select
 from trulens_eval.feedback.provider.hugs import Huggingface
 from trulens_eval.feedback.provider.litellm import LiteLLM
-
+import streamlit as st
 import numpy as np
+import os
 
 # replicate key for running feedback
-import os
-os.environ["REPLICATE_API_TOKEN"] = "r8_..."
+os.environ["REPLICATE_API_TOKEN"] = st.secrets["REPLICATE_API_TOKEN"]
 
 # set feedback functions for trulens to use
 provider = LiteLLM(model_engine="replicate/snowflake/snowflake-arctic-instruct")
