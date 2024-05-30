@@ -15,11 +15,8 @@ from schema import (
     ModelConfig,
 )
 
-import numpy as np
 from trulens_eval import Feedback, Select
 from trulens_eval.feedback.provider.litellm import LiteLLM
-
-# replicate key for running feedback
 
 import numpy as np
 
@@ -114,7 +111,6 @@ def login():
         st.rerun()
 
 
-st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 0)
 
 @st.cache_resource
 def create_feedback_fns():
@@ -128,20 +124,15 @@ def create_feedback_fns():
         )
     f_criminality_input = Feedback(provider.criminality, name = "Criminality input", higher_is_better=False).on(Select.RecordInput)
     f_criminality_output = Feedback(provider.criminality, name = "Criminality output", higher_is_better=False).on(Select.Record.app.retrieve_and_generate_stream.rets[:].collect())
-    print("created feedback fns")
     return [f_context_relevance, f_criminality_input, f_criminality_output]
 
 @st.cache_resource
 def get_tru_app_id(model: str, temperature: float, top_p: float, max_new_tokens: int, use_rag: bool):
-    print("called get_tru_app for ", model)
-    metadata = {
-        "model": model,
-        "temperature": temperature,
-        "top_p": top_p,
-        "max_new_tokens": max_new_tokens,
-        "use_rag": use_rag,
-    }
-    app_id = f"App {st.session_state['app_id_iterator']}"
+    # Args used for caching
+    if 'app_id_iterator' not in st.session_state:
+        st.session_state['app_id_iterator'] = 0
+    app_idx = st.session_state.get('app_id_iterator')
+    app_id = f"App {app_idx}"
     st.session_state['app_id_iterator'] += 1
     return app_id
 
