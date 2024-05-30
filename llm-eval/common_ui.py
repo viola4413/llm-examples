@@ -15,23 +15,17 @@ from schema import (
     ModelConfig,
 )
 
-from trulens_eval import Tru
+import numpy as np
+from trulens_eval import Feedback, Select
+from trulens_eval.feedback.provider.litellm import LiteLLM
 
 # replicate key for running feedback
-import os
-os.environ["REPLICATE_API_TOKEN"] = "r8_..."
-
-from trulens_eval import Feedback, Select
-from trulens_eval.feedback.provider.hugs import Huggingface
-from trulens_eval.feedback.provider.litellm import LiteLLM
 
 import numpy as np
 
 from trulens_eval import TruCustomApp
 
 generator = StreamGenerator()
-
-st.session_state.use_rag = True
 
 def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="public"):
     if st.get_option("client.showSidebarNavigation") and "already_ran" not in st.session_state:
@@ -120,22 +114,10 @@ def login():
         st.rerun()
 
 
-def configure_model(*, container, model_config: ModelConfig, key: str, full_width: bool = True):
-    MODEL_KEY = f"model_{key}"
-    TEMPERATURE_KEY = f"temperature_{key}"
-    TOP_P_KEY = f"top_p_{key}"
-    MAX_NEW_TOKENS_KEY = f"max_new_tokens_{key}"
-    SYSTEM_PROMPT_KEY = f"system_prompt_{key}"
+st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 0)
 
-    # initialize app metadata for tracking
-    metadata = {
-        "model": st.session_state.get(MODEL_KEY, model_config.model),
-        "temperature": st.session_state.get(TEMPERATURE_KEY, model_config.temperature),
-        "top_p": st.session_state.get(TOP_P_KEY, model_config.top_p),
-        "max_new_tokens": st.session_state.get(MAX_NEW_TOKENS_KEY, model_config.max_new_tokens),
-        "use_rag": True,
-    }
-
+@st.cache_resource
+def create_feedback_fns():
     # set feedback functions for trulens to use
     provider = LiteLLM(model_engine="replicate/snowflake/snowflake-arctic-instruct")
     f_context_relevance = (
@@ -146,24 +128,53 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
         )
     f_criminality_input = Feedback(provider.criminality, name = "Criminality input", higher_is_better=False).on(Select.RecordInput)
     f_criminality_output = Feedback(provider.criminality, name = "Criminality output", higher_is_better=False).on(Select.Record.app.retrieve_and_generate_stream.rets[:].collect())
-    feedbacks = [f_context_relevance, f_criminality_input, f_criminality_output]
+    print("created feedback fns")
+    return [f_context_relevance, f_criminality_input, f_criminality_output]
+
+@st.cache_resource
+def get_tru_app_id(model: str, temperature: float, top_p: float, max_new_tokens: int, use_rag: bool):
+    print("called get_tru_app for ", model)
+    metadata = {
+        "model": model,
+        "temperature": temperature,
+        "top_p": top_p,
+        "max_new_tokens": max_new_tokens,
+        "use_rag": use_rag,
+    }
+    app_id = f"App {st.session_state['app_id_iterator']}"
+    st.session_state['app_id_iterator'] += 1
+    return app_id
+
+def configure_model(*, container, model_config: ModelConfig, key: str, full_width: bool = True):
+    MODEL_KEY = f"model_{key}"
+    TEMPERATURE_KEY = f"temperature_{key}"
+    TOP_P_KEY = f"top_p_{key}"
+    MAX_NEW_TOKENS_KEY = f"max_new_tokens_{key}"
+    SYSTEM_PROMPT_KEY = f"system_prompt_{key}"
+    USE_RAG_KEY = "use_rag"
+
+    # initialize app metadata for tracking
+    metadata = {
+        "model": st.session_state.get(MODEL_KEY, model_config.model),
+        "temperature": st.session_state.get(TEMPERATURE_KEY, model_config.temperature),
+        "top_p": st.session_state.get(TOP_P_KEY, model_config.top_p),
+        "max_new_tokens": st.session_state.get(MAX_NEW_TOKENS_KEY, model_config.max_new_tokens),
+        "use_rag": st.session_state.get(USE_RAG_KEY, model_config.use_rag),
+    }
 
     if MODEL_KEY not in st.session_state:
         st.session_state[MODEL_KEY] = model_config.model
         st.session_state[TEMPERATURE_KEY] = model_config.temperature
         st.session_state[TOP_P_KEY] = model_config.top_p
         st.session_state[MAX_NEW_TOKENS_KEY] = model_config.max_new_tokens
+        st.session_state[USE_RAG_KEY] = model_config.use_rag
         metadata = {
                         "model": st.session_state[MODEL_KEY],
                         "temperature": st.session_state[TEMPERATURE_KEY],
                         "top_p": st.session_state[TOP_P_KEY],
                         "max_new_tokens": st.session_state[MAX_NEW_TOKENS_KEY],
+                        "use_rag": st.session_state[USE_RAG_KEY],
                     }
-        # Initialize TruCustomApp recorder with an iterated app id
-        st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 1)
-        app_id = f"App {st.session_state.get('app_id_iterator', 1)}"
-        # Initialize LiteLLM-based feedback function collection class:
-        st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
 
     with container:
         with st.popover(
@@ -179,10 +190,6 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                 )
                 if new_model != st.session_state[MODEL_KEY]:
                     st.session_state[MODEL_KEY] = new_model
-                    # Update TruCustomApp recorder with a new app id upon model change
-                    st.session_state['app_id_iterator'] += 1
-                    app_id = f"App {st.session_state['app_id_iterator']}"
-                    st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
 
             with left2:
                 SYSTEM_PROMPT_HELP = """
@@ -197,10 +204,6 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                 )
                 if new_system_prompt != st.session_state[SYSTEM_PROMPT_KEY]:
                     st.session_state[SYSTEM_PROMPT_KEY] = new_system_prompt
-                    # Update TruCustomApp recorder with a new app id upon system prompt change
-                    st.session_state['app_id_iterator'] += 1
-                    app_id = f"App {st.session_state['app_id_iterator']}"
-                    st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
 
             with right1:
                 new_temperature = st.slider(
@@ -212,10 +215,6 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                 )
                 if new_temperature != st.session_state[TEMPERATURE_KEY]:
                     st.session_state[TEMPERATURE_KEY] = new_temperature
-                    # Update TruCustomApp recorder with a new app id upon temperature change
-                    st.session_state['app_id_iterator'] += 1
-                    app_id = f"App {st.session_state['app_id_iterator']}"
-                    st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
 
             with right2:
                 new_top_p = st.slider(
@@ -227,10 +226,6 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                 )
                 if new_top_p != st.session_state[TOP_P_KEY]:
                     st.session_state[TOP_P_KEY] = new_top_p
-                    # Update TruCustomApp recorder with a new app id upon top_p change
-                    st.session_state['app_id_iterator'] += 1
-                    app_id = f"App {st.session_state['app_id_iterator']}"
-                    st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
 
                 new_max_new_tokens = st.slider(
                     min_value=100,
@@ -241,26 +236,20 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                 )
                 if new_max_new_tokens != st.session_state[MAX_NEW_TOKENS_KEY]:
                     st.session_state[MAX_NEW_TOKENS_KEY] = new_max_new_tokens
-                    # Update TruCustomApp recorder with a new app id upon max new tokens change
-                    st.session_state['app_id_iterator'] += 1
-                    app_id = f"App {st.session_state['app_id_iterator']}"
-                    st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
                 
                 new_use_rag = st.toggle(
                     label="Access to Streamlit Docs",
                     value=True,
-                    key='use_rag_toggle'
+                    key=USE_RAG_KEY
                 )
                 if new_use_rag != st.session_state.use_rag:
                     st.session_state.use_rag = new_use_rag
-                    # Update TruCustomApp recorder with a new app id upon max new tokens change
-                    st.session_state['app_id_iterator'] += 1
-                    app_id = f"App {st.session_state['app_id_iterator']}"
-                    st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
 
-                st.session_state['app_id_iterator'] += 1 
-                app_id = f"App {st.session_state['app_id_iterator']}"
-                st.session_state['trulens_recorder'] = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
+    app_id = get_tru_app_id(**metadata)
+    feedbacks = create_feedback_fns()
+    app = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
+    st.session_state['trulens_recorder'] = app
+    print(model_config)
     return model_config
 
 def chat_response(
