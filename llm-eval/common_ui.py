@@ -174,67 +174,67 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
             left1, right1 = st.columns(2)
             left2, right2 = st.columns(2)
             with left1:
-                new_model = st.selectbox(
+                model_config.model = st.selectbox(
                     label="Select model:",
                     options=AVAILABLE_MODELS,
                     key=MODEL_KEY,
                 )
-                if new_model != st.session_state[MODEL_KEY]:
-                    st.session_state[MODEL_KEY] = new_model
+                if model_config.model != st.session_state[MODEL_KEY]:
+                    st.session_state[MODEL_KEY] = model_config.model
 
             with left2:
                 SYSTEM_PROMPT_HELP = """
                     Add a system prompt which is added to the beginning
                     of each conversation.
                 """
-                new_system_prompt = st.text_area(
+                model_config.system_prompt = st.text_area(
                     label="System Prompt:",
                     height=2,
                     key=SYSTEM_PROMPT_KEY,
                     help=SYSTEM_PROMPT_HELP,
                 )
-                if new_system_prompt != st.session_state[SYSTEM_PROMPT_KEY]:
-                    st.session_state[SYSTEM_PROMPT_KEY] = new_system_prompt
+                if model_config.system_prompt != st.session_state[SYSTEM_PROMPT_KEY]:
+                    st.session_state[SYSTEM_PROMPT_KEY] = model_config.system_prompt
 
             with right1:
-                new_temperature = st.slider(
+                model_config.temperature = st.slider(
                     min_value=0.0,
                     max_value=1.0,
                     step=0.1,
                     label="Temperature:",
                     key=TEMPERATURE_KEY,
                 )
-                if new_temperature != st.session_state[TEMPERATURE_KEY]:
-                    st.session_state[TEMPERATURE_KEY] = new_temperature
+                if model_config.temperature != st.session_state[TEMPERATURE_KEY]:
+                    st.session_state[TEMPERATURE_KEY] = model_config.temperature
 
             with right2:
-                new_top_p = st.slider(
+                model_config.top_p = st.slider(
                     min_value=0.0,
                     max_value=1.0,
                     step=0.1,
                     label="Top P:",
                     key=TOP_P_KEY,
                 )
-                if new_top_p != st.session_state[TOP_P_KEY]:
-                    st.session_state[TOP_P_KEY] = new_top_p
+                if model_config.top_p != st.session_state[TOP_P_KEY]:
+                    st.session_state[TOP_P_KEY] = model_config.top_p
 
-                new_max_new_tokens = st.slider(
+                model_config.max_new_tokens = st.slider(
                     min_value=100,
                     max_value=1500,
                     step=100,
                     label="Max new tokens:",
                     key=MAX_NEW_TOKENS_KEY,
                 )
-                if new_max_new_tokens != st.session_state[MAX_NEW_TOKENS_KEY]:
-                    st.session_state[MAX_NEW_TOKENS_KEY] = new_max_new_tokens
+                if model_config.max_new_tokens != st.session_state[MAX_NEW_TOKENS_KEY]:
+                    st.session_state[MAX_NEW_TOKENS_KEY] = model_config.max_new_tokens
                 
-                new_use_rag = st.toggle(
+                model_config.use_rag = st.toggle(
                     label="Access to Streamlit Docs",
                     value=True,
                     key=USE_RAG_KEY
                 )
-                if new_use_rag != st.session_state.use_rag:
-                    st.session_state.use_rag = new_use_rag
+                if model_config.use_rag != st.session_state.use_rag:
+                    st.session_state.use_rag = model_config.use_rag
 
     app_id = get_tru_app_id(**metadata)
     feedbacks = create_feedback_fns()
