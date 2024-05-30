@@ -1,4 +1,7 @@
 pydantic
 replicate
+pinecone
+llama-index
+trulens_eval
 # update to streamlit 1.35 after release
 https://core-previews.s3-us-west-2.amazonaws.com/develop-preview/streamlit-1.34.0-py2.py3-none-any.whl
