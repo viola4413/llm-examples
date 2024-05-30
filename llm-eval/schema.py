@@ -11,6 +11,7 @@ class ModelConfig(BaseModel):
     top_p: float = 1.0
     max_new_tokens: int = 1024
     system_prompt: str = ""
+    use_rag: bool = True
 
 
 class Message(BaseModel):
