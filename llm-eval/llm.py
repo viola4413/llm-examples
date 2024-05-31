@@ -61,7 +61,7 @@ class StreamGenerator:
     retriever = PineconeRetriever()
 
     def get_last_user_message(self, prompt_str):
-    # Regex to find the last 'user' message
+        # Regex to find the last 'user' message
         match = re.findall(r'<\|im_start\|>user\n(.*?)(?=<\|im_end\|>)', prompt_str, re.DOTALL)
         if match:
             return match[-1].strip()
@@ -79,8 +79,11 @@ class StreamGenerator:
         prompt_str = ENCODING_MAPPING[full_model_name](messages)
 
         # Extract the last user message from the prompt string
-        last_user_message = self.get_last_user_message(prompt_str)
-
+        message = None
+        for message in messages[::-1]:
+            if message.role == "user":
+                break
+        last_user_message = message.content if message and message.role == "user" else ""
         return last_user_message, prompt_str
     
     @instrument
