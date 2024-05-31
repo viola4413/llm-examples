@@ -20,6 +20,7 @@ from trulens_eval.feedback.provider.litellm import LiteLLM
 
 import numpy as np
 
+# feedback functions
 from trulens_eval import TruCustomApp
 
 generator = StreamGenerator()
@@ -109,8 +110,6 @@ def login():
         st.session_state.user_name = existing or new_user
         st.session_state.admin_mode = admin_mode
         st.rerun()
-
-
 
 @st.cache_resource
 def create_feedback_fns():
