@@ -16,7 +16,7 @@ from schema import (
 )
 
 # feedback functions
-from feedback import create_feedback_fns
+from feedback import create_base_feedback_fns, create_context_relevance_feedback_fns
 from trulens_eval import TruCustomApp
 
 generator = StreamGenerator()
@@ -218,7 +218,11 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                     st.session_state.use_rag = model_config.use_rag
 
     app_id = get_tru_app_id(**metadata)
-    feedbacks = create_feedback_fns()
+    
+    feedbacks = create_base_feedback_fns()
+    if model_config.use_rag:
+        feedbacks.append(create_context_relevance_feedback_fns())
+    
     app = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
     st.session_state['trulens_recorder'] = app
     print(model_config)
