@@ -1,15 +1,13 @@
 from typing import List
 import replicate
-from schema import Conversation, Message, ModelConfig
+from schema import Conversation, Message
 from retrieve import PineconeRetriever
 
 import re
 
 # replicate key for running model
-from dotenv import load_dotenv
 from trulens_eval.tru_custom_app import instrument
 
-load_dotenv()
 
 FRIENDLY_MAPPING = {
     "Snowflake Arctic": "snowflake/snowflake-arctic-instruct",

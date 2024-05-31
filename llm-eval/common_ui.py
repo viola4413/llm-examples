@@ -109,7 +109,7 @@ def login():
 
 @st.cache_resource
 def get_tru_app_id(model: str, temperature: float, top_p: float, max_new_tokens: int, use_rag: bool):
-    # Args used for caching
+    # Args are hashed for cache lookup
     if 'app_id_iterator' not in st.session_state:
         st.session_state['app_id_iterator'] = 0
     app_idx = st.session_state.get('app_id_iterator')

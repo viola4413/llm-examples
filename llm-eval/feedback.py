@@ -1,5 +1,4 @@
 from trulens_eval import Feedback, Select
-from trulens_eval.feedback.provider.hugs import Huggingface
 from trulens_eval.feedback.provider.litellm import LiteLLM
 import streamlit as st
 import numpy as np
