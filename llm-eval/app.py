@@ -26,6 +26,8 @@ sidebar_container = page_setup(
     collapse_sidebar=False,
 )
 
+st.session_state['app_id_iterator'] = st.session_state.get('app_id_iterator', 0)
+
 DEFAULT_MESSAGE = "Hello there! Let's chat?"
 MODELS_HELP_STR = "Select an available model"
 
