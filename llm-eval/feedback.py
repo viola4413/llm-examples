@@ -20,7 +20,7 @@ def create_feedback_fns():
     f_answer_relevance = (
             Feedback(provider.relevance_with_cot_reasons, name = "Answer Relevance")
             .on_input()
-            .on(Select.Record.app.retrieve_and_generate_stream.rets[:].collect())
+            .on(Select.Record.app.retrieve_and_generate_response.rets[0])
         )
     f_criminality_input = (
         Feedback(provider.criminality_with_cot_reasons,
@@ -32,6 +32,6 @@ def create_feedback_fns():
         Feedback(provider.criminality_with_cot_reasons,
                  name = "Criminality output",
                  higher_is_better=False)
-                 .on(Select.Record.app.retrieve_and_generate_stream.rets[:].collect())
+                 .on(Select.Record.app.retrieve_and_generate_response.rets[0])
     )
     return [f_context_relevance, f_answer_relevance, f_criminality_input, f_criminality_output]
