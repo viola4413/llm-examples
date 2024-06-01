@@ -1,8 +1,9 @@
-from typing import List
+from typing import AsyncIterator, List
 import replicate
 from schema import Conversation, Message, ModelConfig
 from retrieve import PineconeRetriever
 
+import streamlit as st
 import re
 
 # replicate key for running model
@@ -86,8 +87,23 @@ class StreamGenerator:
         last_user_message = message.content if message and message.role == "user" else ""
         return last_user_message, prompt_str
     
+    def _generate_stream_with_replicate(self, model_name: str, model_input: dict):
+        stream_iter: AsyncIterator = replicate.stream(model_name, input=model_input)
+        for t in stream_iter:
+            yield str(t)
+    
+    def _write_stream_to_st(self, st_container, stream_iter: AsyncIterator) -> None:
+        full_text_response = ""
+        
+        if st_container is None:
+            full_text_response = st.write_stream(stream_iter)
+        else:
+            full_text_response = st_container.write_stream(stream_iter) 
+            
+        return full_text_response
+    
     @instrument
-    def generate_stream(self, last_user_message: str, prompt_str: str, conversation: Conversation):
+    def generate_response(self, last_user_message: str, prompt_str: str, conversation: Conversation, st_container=None) -> str:
         model_config = conversation.model_config
         full_model_name = FRIENDLY_MAPPING[model_config.model]
 
@@ -97,9 +113,14 @@ class StreamGenerator:
             "temperature": model_config.temperature,
             "top_p": model_config.top_p,
         }
-        stream = replicate.stream(full_model_name, input=model_input)
-        for t in stream:
-            yield str(t)
+
+        final_response = ""
+        stream_iter = self._generate_stream_with_replicate(full_model_name, model_input)
+        
+        final_response = self._write_stream_to_st(st_container, stream_iter) 
+
+        return final_response
+ 
 
     @instrument
     def retrieve_context(self, last_user_message: str, prompt_str: str, conversation: Conversation):
@@ -108,7 +129,7 @@ class StreamGenerator:
         return context_message, nodes
 
     @instrument
-    def retrieve_and_generate_stream(self, last_user_message: str, prompt_str: str, conversation: Conversation):
+    def retrieve_and_generate_response(self, last_user_message: str, prompt_str: str, conversation: Conversation, st_container=None) -> str:
         context_message, nodes = self.retrieve_context(last_user_message = last_user_message, prompt_str = prompt_str, conversation = conversation)  # Fixed by passing the conversation object instead of prompt_str
         model_config = conversation.model_config
         full_model_name = FRIENDLY_MAPPING[model_config.model]
@@ -126,6 +147,11 @@ class StreamGenerator:
             "temperature": model_config.temperature,
             "top_p": model_config.top_p,
         }
-        stream = replicate.stream(full_model_name, input=model_input)
-        for t in stream:
-            yield str(t)
+     
+        final_response = ""
+        stream_iter = self._generate_stream_with_replicate(full_model_name, model_input)
+
+        final_response = self._write_stream_to_st(st_container, stream_iter) 
+        
+    
+        return final_response

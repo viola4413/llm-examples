@@ -233,30 +233,23 @@ def chat_response(
         render=False,
     )
     try:
-        if st.session_state['use_rag']:
-            user_message, prompt = generator.prepare_prompt(conversation)
-            stream_iter = generator.retrieve_and_generate_stream(user_message, prompt, conversation) # hack - not displaying in dashboard without this
-            with st.session_state['trulens_recorder']:
-                user_message, prompt = generator.prepare_prompt(conversation)
-                generator.retrieve_and_generate_stream(user_message, prompt, conversation)
-        else:
-            #user_message, prompt = generator.prepare_prompt(conversation)
-            #stream_iter = generator.generate_stream(user_message, prompt, conversation) # hack - not displaying in dashboard without this
-            with st.session_state['trulens_recorder']:
-                user_message, prompt = generator.prepare_prompt(conversation)
-                generator.generate_stream(user_message, prompt, conversation)
-
-        def generate_and_save():
-            for t in stream_iter:
-                conversation.messages[-1].content += str(t)
-                yield str(t)
-
         if container:
             chat = container.chat_message("assistant")
         else:
             chat = st.chat_message("assistant")
-        full_streamed_response = chat.write_stream(generate_and_save)
-        conversation.messages[-1].content = str(full_streamed_response).strip()
+            
+        if st.session_state['use_rag']:
+            user_message, prompt = generator.prepare_prompt(conversation)
+            with st.session_state['trulens_recorder']:
+                user_message, prompt = generator.prepare_prompt(conversation)
+                text_response: str = generator.retrieve_and_generate_response(user_message, prompt, conversation, chat)
+        else:
+            with st.session_state['trulens_recorder']:
+                user_message, prompt = generator.prepare_prompt(conversation)
+                text_response: str = generator.generate_response(user_message, prompt, conversation, chat)
+
+
+        conversation.messages[-1].content = str(text_response).strip()
     except Exception as e:
         conversation.has_error = True
         print("Error while generating chat response: " + str(e))
@@ -296,9 +289,8 @@ def generate_title(
     title_json = ""
     try:
         last_user_message, prompt = generator.prepare_prompt(conversation)
-        stream_iter = generator.generate_stream(last_user_message, prompt, conversation)
-        for t in stream_iter:
-            title_json += str(t)
+        title_json: str = generator.generate_response(last_user_message, prompt, conversation)
+        
         result = json.loads(title_json)
         response_dict["output"] = result["summary"]
 
