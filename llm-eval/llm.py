@@ -90,7 +90,6 @@ class StreamGenerator:
         for t in stream_iter:
             yield str(t)
     
-  
     def _write_stream_to_st(self, stream_iter: AsyncIterator, st_container: Optional[st.DeltaGenerator] = None) -> str:
         full_text_response = ""
         
@@ -98,7 +97,7 @@ class StreamGenerator:
             full_text_response = st.write_stream(stream_iter)
         else:
             full_text_response = st_container.write_stream(stream_iter)
-            
+
         return full_text_response
     
     @instrument
