@@ -1,5 +1,3 @@
-import os
-from dotenv import load_dotenv
 from typing import List
 import streamlit as st
 
@@ -17,8 +15,6 @@ from schema import (
     ConversationRecord,
     Message,
 )
-
-load_dotenv()
 
 title = "Chat"
 if st.session_state.get("conversation_title"):

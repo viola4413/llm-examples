@@ -16,7 +16,7 @@ from schema import (
 )
 
 # feedback functions
-from feedback import create_feedback_fns
+from feedback import feedbacks_no_rag, feedbacks_rag
 from trulens_eval import TruCustomApp
 
 generator = StreamGenerator()
@@ -107,15 +107,9 @@ def login():
         st.session_state.admin_mode = admin_mode
         st.rerun()
 
-@st.cache_resource
 def get_tru_app_id(model: str, temperature: float, top_p: float, max_new_tokens: int, use_rag: bool):
-    # Args used for caching
-    if 'app_id_iterator' not in st.session_state:
-        st.session_state['app_id_iterator'] = 0
-    app_idx = st.session_state.get('app_id_iterator')
-    app_id = f"App {app_idx}"
-    st.session_state['app_id_iterator'] += 1
-    return app_id
+    # Args are hashed for cache lookup
+    return f"{model} {"RAG" if use_rag else ""}: temp {temperature}, top_p {top_p}, max_tokens: {max_new_tokens}"
 
 def configure_model(*, container, model_config: ModelConfig, key: str, full_width: bool = True):
     MODEL_KEY = f"model_{key}"
@@ -218,10 +212,9 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                     st.session_state.use_rag = model_config.use_rag
 
     app_id = get_tru_app_id(**metadata)
-    feedbacks = create_feedback_fns()
+    feedbacks = feedbacks_rag if model_config.use_rag else feedbacks_no_rag
     app = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
     st.session_state['trulens_recorder'] = app
-    print(model_config)
     return model_config
 
 def chat_response(
