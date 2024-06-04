@@ -63,12 +63,12 @@ with st.sidebar:
     enable_toggle = (
         "conversations" in st.session_state and len(st.session_state.conversations[0].messages) > 2
     )
-    st.toggle(
-        "Multi-model mode",
-        disabled=enable_toggle,
-        key="multi_mode",
-        on_change=update_model_mode,
-    )
+    # st.toggle(
+    #     "Multi-model mode",
+    #     disabled=enable_toggle,
+    #     key="multi_mode",
+    #     on_change=update_model_mode,
+    # )
 
 # Store conversation state in streamlit session
 if "conversations" not in st.session_state:
