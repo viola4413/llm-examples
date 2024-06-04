@@ -1,7 +1,9 @@
+from trulens_eval import Tru
 from trulens_eval import Feedback, Select
 from trulens_eval.feedback.provider.litellm import LiteLLM
 import numpy as np
 
+tru = Tru()
 
 provider = LiteLLM(model_engine="replicate/snowflake/snowflake-arctic-instruct")
 
