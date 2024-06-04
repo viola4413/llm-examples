@@ -4,6 +4,7 @@ from schema import Conversation, Message
 from retrieve import PineconeRetriever
 
 import streamlit as st
+from streamlit.delta_generator import DeltaGenerator
 import re
 
 # replicate key for running model
@@ -90,7 +91,7 @@ class StreamGenerator:
         for t in stream_iter:
             yield str(t)
     
-    def _write_stream_to_st(self, stream_iter: AsyncIterator, st_container: Optional[st.DeltaGenerator] = None) -> str:
+    def _write_stream_to_st(self, stream_iter: AsyncIterator, st_container: Optional[DeltaGenerator] = None) -> str:
         full_text_response = ""
         
         if st_container is None:
@@ -101,7 +102,7 @@ class StreamGenerator:
         return full_text_response
     
     @instrument
-    def generate_response(self, last_user_message: str, prompt_str: str, conversation: Conversation, st_container: Optional[st.DeltaGenerator] = None) -> str:
+    def generate_response(self, last_user_message: str, prompt_str: str, conversation: Conversation, st_container: Optional[DeltaGenerator] = None) -> str:
         model_config = conversation.model_config
         full_model_name = FRIENDLY_MAPPING[model_config.model]
 
@@ -127,7 +128,7 @@ class StreamGenerator:
         return context_message, nodes
 
     @instrument
-    def retrieve_and_generate_response(self, last_user_message: str, prompt_str: str, conversation: Conversation, st_container: Optional[st.DeltaGenerator] = None) -> str:
+    def retrieve_and_generate_response(self, last_user_message: str, prompt_str: str, conversation: Conversation, st_container: Optional[DeltaGenerator] = None) -> str:
         context_message, nodes = self.retrieve_context(last_user_message = last_user_message, prompt_str = prompt_str, conversation = conversation)  # Fixed by passing the conversation object instead of prompt_str
         model_config = conversation.model_config
         full_model_name = FRIENDLY_MAPPING[model_config.model]
@@ -150,6 +151,4 @@ class StreamGenerator:
         stream_iter = self._generate_stream_with_replicate(full_model_name, model_input)
 
         final_response = self._write_stream_to_st(stream_iter, st_container) 
-        
-    
         return final_response

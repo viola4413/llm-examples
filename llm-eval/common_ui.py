@@ -25,7 +25,6 @@ def page_setup(title, wide_mode=False, collapse_sidebar=False, visibility="publi
     if st.get_option("client.showSidebarNavigation") and "already_ran" not in st.session_state:
         st.set_option("client.showSidebarNavigation", False)
         st.session_state.already_ran = True
-        st.session_state.use_rag = True
         st.rerun()
 
     # Handle access control
@@ -109,7 +108,7 @@ def login():
 
 def get_tru_app_id(model: str, temperature: float, top_p: float, max_new_tokens: int, use_rag: bool):
     # Args are hashed for cache lookup
-    return f"{model} {"RAG" if use_rag else ""}: temp {temperature}, top_p {top_p}, max_tokens: {max_new_tokens}"
+    return f"{model}{" RAG" if use_rag else ""} (t_{temperature}_top_{top_p}_tokens_{max_new_tokens})"
 
 def configure_model(*, container, model_config: ModelConfig, key: str, full_width: bool = True):
     MODEL_KEY = f"model_{key}"
@@ -117,7 +116,7 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
     TOP_P_KEY = f"top_p_{key}"
     MAX_NEW_TOKENS_KEY = f"max_new_tokens_{key}"
     SYSTEM_PROMPT_KEY = f"system_prompt_{key}"
-    USE_RAG_KEY = "use_rag"
+    USE_RAG_KEY = f"use_rag_{key}"
 
     # initialize app metadata for tracking
     metadata = {
@@ -208,13 +207,13 @@ def configure_model(*, container, model_config: ModelConfig, key: str, full_widt
                     value=True,
                     key=USE_RAG_KEY
                 )
-                if model_config.use_rag != st.session_state.use_rag:
-                    st.session_state.use_rag = model_config.use_rag
+                if model_config.use_rag != st.session_state[USE_RAG_KEY]:
+                    st.session_state[USE_RAG_KEY] = model_config.use_rag
 
     app_id = get_tru_app_id(**metadata)
     feedbacks = feedbacks_rag if model_config.use_rag else feedbacks_no_rag
     app = TruCustomApp(generator, app_id=app_id, metadata=metadata, feedbacks=feedbacks)
-    st.session_state['trulens_recorder'] = app
+    model_config.trulens_recorder = app
     return model_config
 
 def chat_response(
@@ -230,17 +229,12 @@ def chat_response(
             chat = container.chat_message("assistant")
         else:
             chat = st.chat_message("assistant")
-            
-        if st.session_state['use_rag']:
+        with conversation.model_config.trulens_recorder:
             user_message, prompt = generator.prepare_prompt(conversation)
-            with st.session_state['trulens_recorder']:
-                user_message, prompt = generator.prepare_prompt(conversation)
+            if conversation.model_config.use_rag:
                 text_response: str = generator.retrieve_and_generate_response(user_message, prompt, conversation, chat)
-        else:
-            with st.session_state['trulens_recorder']:
-                user_message, prompt = generator.prepare_prompt(conversation)
+            else:
                 text_response: str = generator.generate_response(user_message, prompt, conversation, chat)
-
 
         conversation.messages[-1].content = str(text_response).strip()
     except Exception as e:

@@ -1,8 +1,9 @@
 import json
 from copy import deepcopy
-from typing import List, Literal
+from typing import List, Literal, Optional
 from pydantic import BaseModel
 import streamlit as st
+from trulens_eval import TruCustomApp
 
 
 class ModelConfig(BaseModel):
@@ -12,6 +13,7 @@ class ModelConfig(BaseModel):
     max_new_tokens: int = 1024
     system_prompt: str = ""
     use_rag: bool = True
+    trulens_recorder: Optional[TruCustomApp] = None
 
 
 class Message(BaseModel):
