@@ -139,6 +139,8 @@ class StreamGenerator:
             f"{context_message}"
             "\n---------------------\n"
             f"Given this information, please answer the question: {prompt_str}"
+            "\n---------------------\n"
+            "Only respond if the answer is supported by the information above. Otherwise, respond that you don't have the required information available."
         )
 
         model_input = {
