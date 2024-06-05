@@ -7,6 +7,12 @@ tru = Tru()
 
 provider = LiteLLM(model_engine="replicate/snowflake/snowflake-arctic-instruct")
 
+f_groundedness = (
+    Feedback(provider.groundedness_measure_with_cot_reasons, name = "Groundedness")
+    .on(Select.RecordCalls.retrieve_context.rets[1][:].node.text)
+    .on_output()
+)
+
 f_context_relevance = (
     Feedback(provider.context_relevance_with_cot_reasons, name = "Context Relevance")
     .on_input()
@@ -29,8 +35,8 @@ f_criminality_output = (
     Feedback(provider.criminality_with_cot_reasons,
              name = "Criminality output",
              higher_is_better=False)
-             .on(Select.Record.app.retrieve_and_generate_response.rets[0])
+             .on_output()
 )
 
-feedbacks_rag = [f_context_relevance, f_answer_relevance, f_criminality_input, f_criminality_output]
+feedbacks_rag = [f_context_relevance, f_answer_relevance, f_groundedness, f_criminality_input, f_criminality_output]
 feedbacks_no_rag = [f_answer_relevance, f_criminality_input, f_criminality_output]
