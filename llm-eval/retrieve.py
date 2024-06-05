@@ -4,10 +4,11 @@ from llama_index.vector_stores.pinecone import PineconeVectorStore
 from llama_index.core import VectorStoreIndex
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 import streamlit as st
+import os
 
 class PineconeRetriever:
     def __init__(self):
-        self.pinecone_api_key = st.secrets['PINECONE_API_KEY']
+        self.pinecone_api_key = os.getenv('PINECONE_API_KEY')
         self.pc = Pinecone(api_key=self.pinecone_api_key)
         self.embed_model = HuggingFaceEmbedding("Snowflake/snowflake-arctic-embed-m")
         self.index_name = "streamlit-docs"
