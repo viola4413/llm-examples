@@ -22,7 +22,7 @@ f_context_relevance = (
 f_answer_relevance = (
     Feedback(provider.relevance_with_cot_reasons, name = "Answer Relevance")
     .on_input()
-    .on(Select.Record.app.retrieve_and_generate_response.rets[0])
+    .on_output()
     .aggregate(np.mean)
 )
 f_criminality_input = (
