@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 from pinecone import Pinecone, ServerlessSpec
 import json
 
@@ -10,11 +11,11 @@ from trulens_eval.utils.langchain import WithFeedbackFilterDocuments
 
 from feedback import f_context_relevance
 
+load_dotenv()
+
 
 class PineconeRetriever:
     def __init__(self):
-        self.pinecone_api_key = os.getenv('PINECONE_API_KEY')
-        self.pc = Pinecone(api_key=self.pinecone_api_key)
         self.embed_model = HuggingFaceEmbeddings(model_name = "Snowflake/snowflake-arctic-embed-m")
         self.index_name = "streamlit-docs"
 
@@ -26,7 +27,7 @@ class PineconeRetriever:
         filtered_retriever = WithFeedbackFilterDocuments.of_retriever(
             retriever=retriever,
             feedback=f_context_relevance,
-            threshold=0.5)
+            threshold=0)
         nodes = filtered_retriever.invoke(query)
         contents = [json.loads(t.page_content) for t in nodes]
         texts = [tc.get("text") for tc in contents]
