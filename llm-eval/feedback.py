@@ -9,14 +9,14 @@ provider = LiteLLM(model_engine="replicate/snowflake/snowflake-arctic-instruct")
 
 f_groundedness = (
     Feedback(provider.groundedness_measure_with_cot_reasons, name = "Groundedness")
-    .on(Select.RecordCalls.retrieve_context.rets[1][:].node.text)
+    .on(Select.RecordCalls.retrieve_context.rets[1][:])
     .on_output()
 )
 
 f_context_relevance = (
-    Feedback(provider.context_relevance_with_cot_reasons, name = "Context Relevance")
+    Feedback(provider.context_relevance, name = "Context Relevance")
     .on_input()
-    .on(Select.RecordCalls.retrieve_context.rets[1][:].node.text)
+    .on(Select.RecordCalls.retrieve_context.rets[1][:])
     .aggregate(np.mean) # choose a different aggregation method if you wish
 )
 f_answer_relevance = (

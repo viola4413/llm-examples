@@ -2,6 +2,7 @@ from typing import AsyncIterator, List, Optional
 import replicate
 from schema import Conversation, Message
 from retrieve import PineconeRetriever
+import json
 
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
@@ -127,9 +128,9 @@ class StreamGenerator:
  
     @instrument
     def retrieve_context(self, last_user_message: str, prompt_str: str, conversation: Conversation):
-        nodes = self.retriever.retrieve(query=last_user_message)
-        context_message = "\n\n".join([node.get_content() for node in nodes])
-        return _reencode_outputs(context_message), nodes
+        texts = self.retriever.retrieve(query=last_user_message)
+        context_message = "\n\n".join(texts)
+        return _reencode_outputs(context_message), texts
 
     @instrument
     def retrieve_and_generate_response(self, last_user_message: str, prompt_str: str, conversation: Conversation, st_container: Optional[DeltaGenerator] = None) -> str:
