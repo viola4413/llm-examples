@@ -19,3 +19,7 @@ class PineconeRetriever:
         index = VectorStoreIndex.from_vector_store(vector_store=vector_store, embed_model=self.embed_model)
         retriever = index.as_retriever()
         return retriever.retrieve(query)
+    
+    def set_api_key(self, api_key: str):
+        self.pinecone_api_key = api_key
+        self.pc = Pinecone(api_key=self.pinecone_api_key)

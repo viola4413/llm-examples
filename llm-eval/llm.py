@@ -51,6 +51,8 @@ def encode_generic(messages: List[Message]):
     prompt_str = "\n".join(prompt)
     return prompt_str
 
+def _reencode_outputs(s: str):
+    return s.encode('utf-8', 'surrogateescape').decode('ISO-8859-1')
 
 ENCODING_MAPPING = {
     "snowflake/snowflake-arctic-instruct": encode_arctic,
@@ -66,7 +68,10 @@ class StreamGenerator:
         if match:
             return match[-1].strip()
         return ""
-    
+
+    def set_retriever_api_key(self, api_key: str):
+        self.retriever.set_api_key(api_key)
+
     def prepare_prompt(self, conversation: Conversation):
         messages = conversation.messages
         model_config = conversation.model_config
@@ -118,14 +123,13 @@ class StreamGenerator:
         
         final_response = self._write_stream_to_st(stream_iter, st_container) 
 
-        return final_response
+        return _reencode_outputs(final_response)
  
-
     @instrument
     def retrieve_context(self, last_user_message: str, prompt_str: str, conversation: Conversation):
         nodes = self.retriever.retrieve(query=last_user_message)
         context_message = "\n\n".join([node.get_content() for node in nodes])
-        return context_message, nodes
+        return _reencode_outputs(context_message), nodes
 
     @instrument
     def retrieve_and_generate_response(self, last_user_message: str, prompt_str: str, conversation: Conversation, st_container: Optional[DeltaGenerator] = None) -> str:
@@ -153,4 +157,4 @@ class StreamGenerator:
         stream_iter = self._generate_stream_with_replicate(full_model_name, model_input)
 
         final_response = self._write_stream_to_st(stream_iter, st_container) 
-        return final_response
+        return _reencode_outputs(final_response)
