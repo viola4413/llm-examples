@@ -4,12 +4,6 @@ This app enables conversation with several LLMs under various configurations,
 including access to the Streamlit docs (via RAG) and Automated Evaluations and Tracing with TruLens
 
 Log in to save your conversations. Use Admin Mode to manage users.
-
-**You can access the hosted application and Evaluation Dashboard at:**
-
-- [TruLens Evaluation Dashboard](https://llm.truera.net:8484/).
-- [Streamlit Chat App](http://llm.truera.net:8502)
-
 ## Goals
 
 - Highlight many of the new features launched in Streamlit in the last ~6 months
