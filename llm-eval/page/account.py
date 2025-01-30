@@ -55,7 +55,7 @@ if selected:
 st.subheader("Conversation export")
 
 
-@st.dialog("Export conversations")
+@st.experimental_dialog("Export conversations")
 def export():
     records = []
     for id in id_title_mapping.keys():

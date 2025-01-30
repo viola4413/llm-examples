@@ -151,7 +151,7 @@ if user_input:
 # Add action buttons
 
 
-@st.dialog("Record feedback")
+@st.experimental_dialog("Record feedback")
 def record_feedback():
     TOPIC_CATEGORIES = ["", "Technical", "Travel", "Personal advice", "Other"]
     # Only give feedback on one model config if multiple exist
@@ -244,7 +244,7 @@ def regenerate():
         del conversation.messages[-2:]
 
 
-@st.dialog("Edit conversation title")
+@st.experimental_dialog("Edit conversation title")
 def edit_title():
     new_title = st.text_input(
         "New conversation title:",

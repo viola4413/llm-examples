@@ -43,7 +43,7 @@ def page_setup(title, visibility="public"):
     return sidebar_container
 
 
-@st.dialog("Login")
+@st.experimental_dialog("Login")
 def login():
     conv_mgr: ConversationManager = st.session_state.conversation_manager
     options = set([""])
